@@ -79,11 +79,11 @@ th{text-align:left;color:var(--faint);font-family:var(--disp);font-weight:500;fo
 th:hover{color:var(--dim)}
 th.num{text-align:right}
 th .arw{color:var(--amber)}
-td{padding:13px 16px;background:rgba(19,25,34,.45);vertical-align:middle;border-top:1px solid transparent;border-bottom:1px solid transparent}
+td{padding:13px 16px;background:rgba(23,30,41,.66);vertical-align:middle;border-top:1px solid transparent;border-bottom:1px solid transparent}
 tr.sess{cursor:pointer}
 tr.sess td:first-child{border-top-left-radius:12px;border-bottom-left-radius:12px}
 tr.sess td:last-child{border-top-right-radius:12px;border-bottom-right-radius:12px}
-tr.sess:hover td{background:rgba(25,32,43,.75)}
+tr.sess:hover td{background:rgba(31,40,53,.9)}
 tr.run td{background:linear-gradient(90deg,rgba(95,224,240,.10),rgba(19,25,34,.5) 42%)}
 tr.run td:first-child{box-shadow:inset 3px 0 0 var(--ice)}
 tr.zomb td{background:linear-gradient(90deg,rgba(255,184,77,.10),rgba(19,25,34,.5) 42%)}

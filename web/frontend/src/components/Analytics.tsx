@@ -1,8 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { Analytics as AnalyticsData } from '../types'
 import { fmtN } from '../format'
 
+const fmtDay = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+
 export default function Analytics({ data }: { data: AnalyticsData | null }) {
+  const [hc, setHc] = useState<{ day: string; n: number; left: number; top: number } | null>(null)
+
   const heat = useMemo(() => {
     if (!data) return { cells: [] as { key: string; n: number; lv: number }[], total: 0 }
     const map: Record<string, number> = {}
@@ -30,11 +34,24 @@ export default function Analytics({ data }: { data: AnalyticsData | null }) {
     <section>
       <div className="panel">
         <h3>Activity — prompts per day</h3>
-        <div className="heat">
-          {heat.cells.map(c => <div key={c.key} className={'c' + (c.lv ? ' l' + c.lv : '')} title={`${c.key}: ${c.n} prompts`} />)}
+        <div className="heatwrap" style={{ position: 'relative' }} onMouseLeave={() => setHc(null)}>
+          <div className="heat">
+            {heat.cells.map(c => (
+              <div key={c.key} className={'c' + (c.lv ? ' l' + c.lv : '')}
+                onMouseEnter={e => {
+                  const el = e.currentTarget
+                  setHc({ day: c.key, n: c.n, left: el.offsetLeft + el.offsetWidth / 2, top: el.offsetTop })
+                }} />
+            ))}
+          </div>
+          {hc && (
+            <div className="wtip" style={{ left: hc.left, top: hc.top, transform: 'translate(-50%,-130%)' }}>
+              <b>{hc.n}</b> prompt{hc.n === 1 ? '' : 's'} · {fmtDay(hc.day)}
+            </div>
+          )}
         </div>
         <div className="legend">Less
-          <span className="c" style={{ background: '#1a1f2b' }} /><span className="c l1" /><span className="c l2" /><span className="c l3" /><span className="c l4" /> More
+          <span className="c" style={{ background: '#151c26' }} /><span className="c l1" /><span className="c l2" /><span className="c l3" /><span className="c l4" /> More
           <span style={{ marginLeft: 14 }}>{fmtN(heat.total)} prompts over last ~26 weeks</span>
         </div>
       </div>
