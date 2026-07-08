@@ -6,7 +6,7 @@ import { ago, dur, fmtN, mem, isZombie } from '../format'
 type SortKey = 'project' | 'model' | 'resources' | 'prompt_count' | 'tokens' | 'last_used_at' | 'duration_secs' | 'task'
 
 const COLS: [SortKey, string, boolean][] = [
-  ['project', 'Session', false], ['model', 'Model', false], ['resources', 'CPU / Mem', true],
+  ['project', 'Session', false], ['model', 'Model', false], ['resources', 'CPU / Mem', false],
   ['prompt_count', 'Prompts', true], ['tokens', 'Tokens', true], ['last_used_at', 'Last used', false],
   ['duration_secs', 'Lifetime', false], ['task', 'Task', false],
 ]
@@ -167,8 +167,11 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
           <div className="cwd">{s.cwd || s.id}</div>
         </td>
         <td><span className="badge">{model || '—'}</span></td>
-        <td className="num">{run
-          ? <span className={'res-cell ' + (s.cpu >= 80 ? 'hi' : '')}>{s.cpu.toFixed(0)}% <span className="m">· {mem(s.mem_mb)}</span></span>
+        <td>{run
+          ? <span className={'res-cell ' + (s.cpu >= 80 ? 'hi' : '')}>
+              <span className="spark"><i style={{ height: '45%' }} /><i style={{ height: '75%' }} /><i style={{ height: '55%' }} /><i style={{ height: '88%' }} /></span>
+              {s.cpu.toFixed(0)}% · {mem(s.mem_mb)}
+            </span>
           : <span className="res-cell off">—</span>}</td>
         <td className="num">{s.prompt_count || 0}</td>
         <td className="num">{tok ? fmtN(tok) : '—'}</td>

@@ -1,7 +1,9 @@
 import type { Session } from './types'
 
 export const fmtN = (n: number): string =>
-  n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : '' + n
+  n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M'
+    : n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k'
+      : '' + n
 
 export function ago(ms: number): string {
   if (!ms) return '—'

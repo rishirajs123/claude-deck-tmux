@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session, Stats, Analytics as AnalyticsData, Action } from './types'
 import { getSessions, getStats, getAnalytics, doAction, saveMeta } from './api'
-import { fmtN, isZombie } from './format'
+import { isZombie } from './format'
+import Hero from './components/Hero'
 import Sessions from './components/Sessions'
 import Analytics from './components/Analytics'
 import Palette from './components/Palette'
@@ -19,11 +20,9 @@ export default function App() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [view, setView] = useState<'sessions' | 'analytics'>('sessions')
   const [paused, setPaused] = useState(false)
-  const [pulse, setPulse] = useState('live')
+  const [clock, setClock] = useState('')
   const [toast, setToast] = useState<{ msg: string; kind: string } | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const viewRef = useRef(view)
-  viewRef.current = view
   const toastTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const showToast = useCallback((msg: string, kind = '') => {
@@ -34,15 +33,13 @@ export default function App() {
 
   const load = useCallback(async () => {
     try {
-      const [s, st] = await Promise.all([getSessions(), getStats()])
+      const [s, st, an] = await Promise.all([getSessions(), getStats(), getAnalytics()])
       setSessions(s || [])
       setStats(st)
-      if (viewRef.current === 'analytics') {
-        try { setAnalytics(await getAnalytics()) } catch { /* ignore */ }
-      }
-      setPulse('live · ' + new Date().toLocaleTimeString())
+      setAnalytics(an)
+      setClock(new Date().toLocaleTimeString([], { hour12: false }))
     } catch {
-      setPulse('backend offline')
+      setClock('offline')
     }
   }, [])
 
@@ -52,10 +49,6 @@ export default function App() {
     const t = setInterval(load, 5000)
     return () => clearInterval(t)
   }, [load, paused])
-
-  useEffect(() => {
-    if (view === 'analytics') getAnalytics().then(setAnalytics).catch(() => {})
-  }, [view])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -98,36 +91,27 @@ export default function App() {
   }, [sessions, load, showToast])
 
   const handlers: Handlers = { runAction, toggleFav, saveNote, killZombies }
-
-  const cards: [keyof Stats, string, string][] = [
-    ['total', 'Sessions', ''], ['running', 'Running now', 'hot'],
-    ['prompts', 'Total prompts', ''], ['projects', 'Projects', ''],
-  ]
+  const zombies = sessions.filter(isZombie).length
 
   return (
     <div className="wrap">
-      <header>
-        <h1>ClaudeDeck</h1>
+      <div className="strip">
+        <div className="brand">CLAUDE<b>DECK</b></div>
+        <div className="eyebrow">Mission Control</div>
         <div className="nav">
           <button className={view === 'sessions' ? 'on' : ''} onClick={() => setView('sessions')}>Sessions</button>
           <button className={view === 'analytics' ? 'on' : ''} onClick={() => setView('analytics')}>Analytics</button>
         </div>
-        <span className="right">
+        <div className="right">
           <button className="iconbtn" onClick={() => setPaletteOpen(true)}>⌘K</button>
           <button className="iconbtn" onClick={() => setPaused(p => !p)}>{paused ? '▶' : '⏸'}</button>
           <button className="iconbtn" onClick={load}>⟳</button>
-          <span><span className="dot" /> <span>{pulse}</span></span>
-        </span>
-      </header>
-
-      {stats && (
-        <div className="stats">
-          {cards.map(([k, l, c]) => (
-            <div className={'card ' + c} key={k}><div className="n">{fmtN(stats[k] as number)}</div><div className="l">{l}</div></div>
-          ))}
-          <div className="card"><div className="n">{fmtN((stats.tokens_in || 0) + (stats.tokens_out || 0))}</div><div className="l">Tokens (in+out)</div></div>
+          {zombies > 0 && <span className="alert">⚠ {zombies} idle</span>}
+          <span className="clock">{clock || '—'}{paused ? ' · paused' : ''}</span>
         </div>
-      )}
+      </div>
+
+      {view === 'sessions' && <Hero stats={stats} daily={analytics?.daily || []} />}
 
       {view === 'sessions'
         ? <Sessions sessions={sessions} handlers={handlers} />
