@@ -108,7 +108,8 @@ export default function Sessions({ sessions, handlers }: { sessions: Session[]; 
 }
 
 function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (id: string) => void; h: Handlers }) {
-  const [tags, setTags] = useState(s.tags || '')
+  const [tags, setTags] = useState<string[]>(() => (s.tags || '').split(',').map(t => t.trim()).filter(Boolean))
+  const [tagInput, setTagInput] = useState('')
   const [notes, setNotes] = useState(s.notes || '')
   const run = s.status === 'running'
   const zomb = isZombie(s)
@@ -116,6 +117,21 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
   const model = (s.model || '').replace('claude-', '')
   const tagChips = (s.tags || '').split(',').map(t => t.trim()).filter(Boolean)
   const stop = (e: React.MouseEvent) => e.stopPropagation()
+  const addTags = (raw: string) => {
+    const parts = raw.split(',').map(t => t.trim()).filter(Boolean)
+    if (parts.length) setTags(prev => Array.from(new Set([...prev, ...parts])))
+  }
+  const removeTag = (t: string) => setTags(prev => prev.filter(x => x !== t))
+  const onTagKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTags(tagInput); setTagInput('') }
+    else if (e.key === 'Backspace' && !tagInput && tags.length) removeTag(tags[tags.length - 1])
+  }
+  const saveMeta2 = (e: React.MouseEvent) => {
+    stop(e)
+    const finalTags = Array.from(new Set([...tags, ...tagInput.split(',').map(t => t.trim()).filter(Boolean)]))
+    setTags(finalTags); setTagInput('')
+    h.saveNote(s, finalTags.join(','), notes)
+  }
 
   return (
     <>
@@ -162,9 +178,15 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
               {run && <button className="btn danger" onClick={e => { stop(e); h.runAction('kill', s) }}>✕ Kill</button>}
             </div>
             <div className="metabar">
-              <input className="tags" placeholder="tags (comma separated)" value={tags} onClick={stop} onChange={e => setTags(e.target.value)} />
+              <div className="tageditor" onClick={e => { stop(e); (e.currentTarget.querySelector('input') as HTMLInputElement | null)?.focus() }}>
+                {tags.map(t => (
+                  <span className="chip" key={t}>{t}<button onClick={e => { stop(e); removeTag(t) }}>×</button></span>
+                ))}
+                <input placeholder={tags.length ? 'add tag…' : 'tags — Enter or comma to add'} value={tagInput}
+                  onClick={stop} onChange={e => setTagInput(e.target.value)} onKeyDown={onTagKey} />
+              </div>
               <textarea rows={1} placeholder="notes…" value={notes} onClick={stop} onChange={e => setNotes(e.target.value)} />
-              <button className="btn" onClick={e => { stop(e); h.saveNote(s, tags, notes) }}>Save</button>
+              <button className="btn" onClick={saveMeta2}>Save</button>
             </div>
           </td>
         </tr>
