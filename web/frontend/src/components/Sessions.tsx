@@ -11,6 +11,10 @@ const COLS: [SortKey, string, boolean][] = [
   ['duration_secs', 'Lifetime', false], ['task', 'Task', false],
 ]
 
+type Range = 'recent' | '30d' | 'all'
+const WINDOW: Record<Range, number> = { recent: 7 * 864e5, '30d': 30 * 864e5, all: Infinity }
+const RANGE_LABEL: Record<Range, string> = { recent: '7 days', '30d': '30 days', all: 'All time' }
+
 function sortVal(s: Session, k: SortKey): number | string {
   if (k === 'tokens') return (s.tokens_in || 0) + (s.tokens_out || 0)
   if (k === 'resources') return (s.cpu || 0) * 1e7 + (s.mem_mb || 0)
@@ -22,6 +26,7 @@ function sortVal(s: Session, k: SortKey): number | string {
 export default function Sessions({ sessions, handlers }: { sessions: Session[]; handlers: Handlers }) {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<'all' | 'running' | 'ended' | 'fav'>('all')
+  const [range, setRange] = useState<Range>('recent')
   const [grouped, setGrouped] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('last_used_at')
   const [sortDir, setSortDir] = useState(-1)
@@ -30,19 +35,26 @@ export default function Sessions({ sessions, handlers }: { sessions: Session[]; 
 
   const list = useMemo(() => {
     const ql = q.toLowerCase().trim()
+    const win = WINDOW[range]
+    const now = Date.now()
     return sessions.filter(s => {
       if (filter === 'fav') { if (!s.favorite) return false }
       else if (filter !== 'all' && s.status !== filter) return false
       if (ql) {
+        // search covers ALL sessions — ignore the time window
         const hay = (s.project + ' ' + s.cwd + ' ' + s.model + ' ' + (s.current_task || '') + ' ' + (s.first_prompt || '') + ' ' + (s.tags || '')).toLowerCase()
-        if (!hay.includes(ql)) return false
+        return hay.includes(ql)
+      }
+      // time window, but running + pinned are always shown regardless of age
+      if (win !== Infinity && s.status !== 'running' && !s.favorite) {
+        if (!s.last_used_at || now - s.last_used_at > win) return false
       }
       return true
     }).sort((a, b) => {
       const x = sortVal(a, sortKey), y = sortVal(b, sortKey)
       return (x < y ? -1 : x > y ? 1 : 0) * sortDir
     })
-  }, [sessions, q, filter, sortKey, sortDir])
+  }, [sessions, q, filter, sortKey, sortDir, range])
 
   const zombies = sessions.filter(isZombie)
 
@@ -83,8 +95,20 @@ export default function Sessions({ sessions, handlers }: { sessions: Session[]; 
             <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>{f === 'fav' ? '★' : f[0].toUpperCase() + f.slice(1)}</button>
           ))}
         </div>
+        <div className="seg">
+          {(['recent', '30d', 'all'] as const).map(r => (
+            <button key={r} className={range === r ? 'on' : ''} onClick={() => setRange(r)}>{RANGE_LABEL[r]}</button>
+          ))}
+        </div>
         <button className={'iconbtn ' + (grouped ? 'on' : '')} onClick={() => setGrouped(g => !g)}>▦ Group by project</button>
       </div>
+      {range !== 'all' && !q && (
+        <div className="hint">
+          Showing {list.length} of {sessions.length} — last {RANGE_LABEL[range]}, plus running &amp; pinned.
+          <button className="linkbtn" onClick={() => setRange('all')}>Show all</button>
+        </div>
+      )}
+      {q && <div className="hint">Searching all {sessions.length} sessions.</div>}
       <table>
         <thead><tr>
           {COLS.map(([k, label, num]) => (
