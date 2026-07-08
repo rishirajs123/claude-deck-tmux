@@ -67,5 +67,17 @@ make help    # all targets
 ```
 Stack: Go (backend, SQLite) + React + TypeScript + Vite + Tailwind (embedded via `go:embed`).
 
+## Contributing
+Contributions are very welcome — and genuinely appreciated. 🙌 Issues, feature ideas, docs fixes, and pull requests are all fair game; you don't need permission to open one.
+
+Especially welcome:
+- **Terminal drivers** beyond iTerm2 (Terminal.app, Ghostty, WezTerm, …) and **Linux** support
+- New dashboard features and **UX polish**
+- **Parser robustness** across Claude Code versions
+
+Getting started: `make dev` runs the frontend with hot-reload (see [Development](#development)); `make build` produces the binary. Keep PRs focused and describe the change — and if you're planning something big, open an issue first so we can align. First-time contributors are more than welcome.
+
+Thanks for helping make ClaudeDeck better!
+
 ## License
 MIT — see [LICENSE](LICENSE).
