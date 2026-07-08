@@ -5,10 +5,11 @@ import { ago, dur, fmtN, mem, isZombie } from '../format'
 
 type SortKey = 'project' | 'model' | 'resources' | 'prompt_count' | 'tokens' | 'last_used_at' | 'duration_secs' | 'task'
 
+// [key, label, right-aligned]
 const COLS: [SortKey, string, boolean][] = [
   ['project', 'Session', false], ['model', 'Model', false], ['resources', 'CPU / Mem', false],
-  ['prompt_count', 'Prompts', true], ['tokens', 'Tokens', true], ['last_used_at', 'Last used', false],
-  ['duration_secs', 'Lifetime', false], ['task', 'Task', false],
+  ['prompt_count', 'Prompts', true], ['tokens', 'Tokens', true], ['last_used_at', 'Last', false],
+  ['duration_secs', 'Life', false], ['task', 'Task', false],
 ]
 
 type Range = 'recent' | '30d' | 'all'
@@ -41,11 +42,9 @@ export default function Sessions({ sessions, handlers }: { sessions: Session[]; 
       if (filter === 'fav') { if (!s.favorite) return false }
       else if (filter !== 'all' && s.status !== filter) return false
       if (ql) {
-        // search covers ALL sessions — ignore the time window
         const hay = (s.project + ' ' + s.cwd + ' ' + s.model + ' ' + (s.current_task || '') + ' ' + (s.first_prompt || '') + ' ' + (s.tags || '')).toLowerCase()
         return hay.includes(ql)
       }
-      // time window, but running + pinned are always shown regardless of age
       if (win !== Infinity && s.status !== 'running' && !s.favorite) {
         if (!s.last_used_at || now - s.last_used_at > win) return false
       }
@@ -73,9 +72,9 @@ export default function Sessions({ sessions, handlers }: { sessions: Session[]; 
     return keys.flatMap(k => {
       const g = groups[k], col = collapsed.has(k), run = g.filter(s => s.status === 'running').length
       const head = (
-        <tr className="grp" key={'g-' + k} onClick={() => toggleGroup(k)}>
-          <td colSpan={9}>{col ? '▸' : '▾'} {k}<span className="gcount">{g.length} session{g.length > 1 ? 's' : ''}{run ? ` · ${run} running` : ''}</span></td>
-        </tr>
+        <div className="mgroup" key={'g-' + k} onClick={() => toggleGroup(k)}>
+          {col ? '▸' : '▾'} {k}<span className="gcount">{g.length} session{g.length > 1 ? 's' : ''}{run ? ` · ${run} running` : ''}</span>
+        </div>
       )
       return col ? [head] : [head, ...g.map(s => <Row key={s.id} s={s} open={expanded.has(s.id)} onToggle={toggle} h={handlers} />)]
     })
@@ -109,17 +108,17 @@ export default function Sessions({ sessions, handlers }: { sessions: Session[]; 
         </div>
       )}
       {q && <div className="hint">Searching all {sessions.length} sessions.</div>}
-      <table>
-        <thead><tr>
-          {COLS.map(([k, label, num]) => (
-            <th key={k} className={num ? 'num' : ''} onClick={() => clickSort(k)}>
-              {label}{sortKey === k && <span className="arw"> {sortDir < 0 ? '▼' : '▲'}</span>}
-            </th>
-          ))}
-          <th></th>
-        </tr></thead>
-        <tbody>{rows()}</tbody>
-      </table>
+
+      <div className="mhead">
+        {COLS.map(([k, label, r]) => (
+          <div key={k} className={'mh' + (r ? ' r' : '')} onClick={() => clickSort(k)}>
+            {label}{sortKey === k && <span className="arw"> {sortDir < 0 ? '▼' : '▲'}</span>}
+          </div>
+        ))}
+        <div />
+      </div>
+      <div className="manifest">{rows()}</div>
+
       {list.length === 0 && (
         <div className="empty">
           {sessions.length === 0
@@ -159,64 +158,65 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
 
   return (
     <>
-      <tr className={'sess' + (run ? ' run' : '') + (zomb ? ' zomb' : '')} onClick={() => onToggle(s.id)}>
-        <td>
-          <span className={'star ' + (s.favorite ? 'on' : '')} onClick={e => { stop(e); h.toggleFav(s) }}>{s.favorite ? '★' : '☆'}</span>
-          <span className={'sdot ' + s.status} /><span className="proj">{s.project || '(unknown)'}</span>
-          {tagChips.map(t => <span className="tagchip" key={t}>{t}</span>)}
+      <div className={'mrow' + (run ? ' run' : '') + (zomb ? ' zomb' : '')} onClick={() => onToggle(s.id)}>
+        <div className="sesscell">
+          <div className="sessline">
+            <span className={'star ' + (s.favorite ? 'on' : '')} onClick={e => { stop(e); h.toggleFav(s) }}>{s.favorite ? '★' : '☆'}</span>
+            <span className={'sdot ' + s.status} />
+            <span className="proj">{s.project || '(unknown)'}</span>
+            {tagChips.map(t => <span className="tagchip" key={t}>{t}</span>)}
+          </div>
           <div className="cwd">{s.cwd || s.id}</div>
-        </td>
-        <td><span className="badge">{model || '—'}</span></td>
-        <td>{run
+        </div>
+        <div><span className="badge">{model || '—'}</span></div>
+        <div>{run
           ? <span className={'res-cell ' + (s.cpu >= 80 ? 'hi' : '')}>
               <span className="spark"><i style={{ height: '45%' }} /><i style={{ height: '75%' }} /><i style={{ height: '55%' }} /><i style={{ height: '88%' }} /></span>
               {s.cpu.toFixed(0)}% · {mem(s.mem_mb)}
             </span>
-          : <span className="res-cell off">—</span>}</td>
-        <td className="num">{s.prompt_count || 0}</td>
-        <td className="num">{tok ? fmtN(tok) : '—'}</td>
-        <td className="mono">{ago(s.last_used_at)}{zomb ? ' ⚠' : ''}</td>
-        <td className="mono">{dur(s.duration_secs)}</td>
-        <td className="task">{s.current_task || s.first_prompt || '—'}</td>
-        <td className="rowact">{run
+          : <span className="res-cell off">—</span>}</div>
+        <div className="r mononum">{s.prompt_count || 0}</div>
+        <div className="r mononum">{tok ? fmtN(tok) : '—'}</div>
+        <div className="mono">{ago(s.last_used_at)}{zomb ? ' ⚠' : ''}</div>
+        <div className="mono">{dur(s.duration_secs)}</div>
+        <div className="task">{s.current_task || s.first_prompt || '—'}</div>
+        <div className="rowact">{run
           ? <button className="btn go" onClick={e => { stop(e); h.runAction('focus', s) }}>▶ Focus</button>
-          : <button className="btn res" onClick={e => { stop(e); h.runAction('resume', s) }}>↻ Resume</button>}</td>
-      </tr>
+          : <button className="btn res" onClick={e => { stop(e); h.runAction('resume', s) }}>↻ Resume</button>}</div>
+      </div>
       {open && (
-        <tr className="detail">
-          <td colSpan={9}>
-            <div className="kv">
-              <div><b>Session</b> <span className="mono">{s.id}</span></div>
-              <div><b>Created</b> {s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</div>
-              <div><b>Messages</b> {s.message_count || 0}</div>
-              <div><b>Git branch</b> {s.git_branch || '—'}</div>
-              <div><b>Tokens</b> in {fmtN(s.tokens_in || 0)} · out {fmtN(s.tokens_out || 0)}</div>
-              <div><b>Status</b> {s.status}{zomb ? ' (idle zombie)' : ''}</div>
-              {run && <div><b>CPU / Memory</b> {(s.cpu || 0).toFixed(1)}% · {(s.mem_mb || 0).toFixed(0)} MB</div>}
+        <div className="mdetail">
+          <div className="kv">
+            <div><b>Session</b> <span className="mono">{s.id}</span></div>
+            <div><b>Created</b> {s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</div>
+            <div><b>Messages</b> {s.message_count || 0}</div>
+            <div><b>Git branch</b> {s.git_branch || '—'}</div>
+            <div><b>Tokens</b> in {fmtN(s.tokens_in || 0)} · out {fmtN(s.tokens_out || 0)}</div>
+            <div><b>Status</b> {s.status}{zomb ? ' (idle zombie)' : ''}</div>
+            {run && <div><b>CPU / Memory</b> {(s.cpu || 0).toFixed(1)}% · {(s.mem_mb || 0).toFixed(0)} MB</div>}
+          </div>
+          {s.first_prompt && <div style={{ marginTop: 8 }}><b>First prompt:</b> {s.first_prompt}</div>}
+          {s.current_task && <div style={{ marginTop: 6 }}><b>Task:</b> {s.current_task}</div>}
+          <div className="actbar">
+            {run
+              ? <button className="btn go" onClick={e => { stop(e); h.runAction('focus', s) }}>▶ Focus tab</button>
+              : <button className="btn res" onClick={e => { stop(e); h.runAction('resume', s) }}>↻ Resume session</button>}
+            <button className="btn" onClick={e => { stop(e); h.runAction('reveal', s) }}>📁 Reveal</button>
+            <button className="btn" onClick={e => { stop(e); navigator.clipboard.writeText(`cd '${s.cwd}' && claude --resume '${s.id}'`) }}>⧉ Copy resume</button>
+            {run && <button className="btn danger" onClick={e => { stop(e); h.runAction('kill', s) }}>✕ Kill</button>}
+          </div>
+          <div className="metabar">
+            <div className="tageditor" onClick={e => { stop(e); (e.currentTarget.querySelector('input') as HTMLInputElement | null)?.focus() }}>
+              {tags.map(t => (
+                <span className="chip" key={t}>{t}<button onClick={e => { stop(e); removeTag(t) }}>×</button></span>
+              ))}
+              <input placeholder={tags.length ? 'add tag…' : 'tags — Enter or comma to add'} value={tagInput}
+                onClick={stop} onChange={e => setTagInput(e.target.value)} onKeyDown={onTagKey} />
             </div>
-            {s.first_prompt && <div style={{ marginTop: 8 }}><b>First prompt:</b> {s.first_prompt}</div>}
-            {s.current_task && <div style={{ marginTop: 6 }}><b>Task:</b> {s.current_task}</div>}
-            <div className="actbar">
-              {run
-                ? <button className="btn go" onClick={e => { stop(e); h.runAction('focus', s) }}>▶ Focus tab</button>
-                : <button className="btn res" onClick={e => { stop(e); h.runAction('resume', s) }}>↻ Resume session</button>}
-              <button className="btn" onClick={e => { stop(e); h.runAction('reveal', s) }}>📁 Reveal</button>
-              <button className="btn" onClick={e => { stop(e); navigator.clipboard.writeText(`cd '${s.cwd}' && claude --resume '${s.id}'`) }}>⧉ Copy resume</button>
-              {run && <button className="btn danger" onClick={e => { stop(e); h.runAction('kill', s) }}>✕ Kill</button>}
-            </div>
-            <div className="metabar">
-              <div className="tageditor" onClick={e => { stop(e); (e.currentTarget.querySelector('input') as HTMLInputElement | null)?.focus() }}>
-                {tags.map(t => (
-                  <span className="chip" key={t}>{t}<button onClick={e => { stop(e); removeTag(t) }}>×</button></span>
-                ))}
-                <input placeholder={tags.length ? 'add tag…' : 'tags — Enter or comma to add'} value={tagInput}
-                  onClick={stop} onChange={e => setTagInput(e.target.value)} onKeyDown={onTagKey} />
-              </div>
-              <textarea rows={1} placeholder="notes…" value={notes} onClick={stop} onChange={e => setNotes(e.target.value)} />
-              <button className="btn" onClick={saveMeta2}>Save</button>
-            </div>
-          </td>
-        </tr>
+            <textarea rows={1} placeholder="notes…" value={notes} onClick={stop} onChange={e => setNotes(e.target.value)} />
+            <button className="btn" onClick={saveMeta2}>Save</button>
+          </div>
+        </div>
       )}
     </>
   )
