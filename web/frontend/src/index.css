@@ -84,9 +84,9 @@ tr.sess{cursor:pointer}
 tr.sess td:first-child{border-top-left-radius:12px;border-bottom-left-radius:12px}
 tr.sess td:last-child{border-top-right-radius:12px;border-bottom-right-radius:12px}
 tr.sess:hover td{background:rgba(31,40,53,.9)}
-tr.run td{background:linear-gradient(90deg,rgba(95,224,240,.10),rgba(19,25,34,.5) 42%)}
+tr.run td{background:rgba(95,224,240,.055)}
 tr.run td:first-child{box-shadow:inset 3px 0 0 var(--ice)}
-tr.zomb td{background:linear-gradient(90deg,rgba(255,184,77,.10),rgba(19,25,34,.5) 42%)}
+tr.zomb td{background:rgba(255,184,77,.05)}
 tr.zomb td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
 tr.sess:hover .rowact{opacity:1}
 tr.grp td{background:rgba(25,32,43,.6);color:var(--dim);font-family:var(--disp);font-weight:600;font-size:12px;letter-spacing:.04em;cursor:pointer;border-radius:10px}
