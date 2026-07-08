@@ -1,4 +1,4 @@
-.PHONY: build run dev frontend service uninstall clean help
+.PHONY: build run dev frontend service restart uninstall clean help
 
 help: ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/' | sort
@@ -17,6 +17,9 @@ frontend: ## build only the frontend into web/static
 
 service: build ## install as an always-on macOS launchd agent
 	@./deploy/install-service.sh
+
+restart: build ## rebuild + restart the running launchd agent (apply code changes)
+	@launchctl kickstart -k gui/$$(id -u)/com.claudedeck.agent && echo "✓ rebuilt and restarted the claude-deck agent"
 
 uninstall: ## remove the launchd agent
 	@./deploy/uninstall-service.sh
