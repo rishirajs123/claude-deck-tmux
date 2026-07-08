@@ -1,0 +1,15 @@
+# build output
+/claude-deck
+*.db
+*.db-shm
+*.db-wal
+
+# deps / tooling
+node_modules/
+dist/
+
+# local Claude session context (never commit)
+.claude/context/
+
+# os
+.DS_Store
