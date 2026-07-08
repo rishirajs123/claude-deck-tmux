@@ -51,8 +51,10 @@ body{
 .subline b{color:var(--txt)}
 .wavewrap{position:relative;display:flex;align-items:flex-end}
 .wcap{position:absolute;top:4px;left:2px;font-family:var(--disp);font-size:9.5px;letter-spacing:.24em;color:var(--faint);text-transform:uppercase}
-.wave{width:100%;height:150px}
+.wave{width:100%;height:150px;cursor:crosshair}
 .nowdot{fill:var(--ice);filter:drop-shadow(0 0 6px var(--ice))}
+.wtip{position:absolute;top:0;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--hull);border-radius:7px;padding:4px 9px;font-family:var(--mono);font-size:11px;color:var(--dim);white-space:nowrap;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.55);z-index:5}
+.wtip b{color:var(--ice)}
 .reads{display:flex;gap:28px;margin:0 0 20px 4px}
 .read{display:flex;flex-direction:column;gap:3px}
 .read .k{font-family:var(--disp);font-size:9.5px;letter-spacing:.2em;color:var(--faint);text-transform:uppercase}
