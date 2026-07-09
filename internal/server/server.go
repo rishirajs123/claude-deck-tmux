@@ -6,7 +6,10 @@ import (
 	"io/fs"
 	"net/http"
 	"sort"
+	"sync"
+	"time"
 
+	"github.com/tachodril/claude-deck/internal/ingest"
 	"github.com/tachodril/claude-deck/internal/live"
 	"github.com/tachodril/claude-deck/internal/model"
 	"github.com/tachodril/claude-deck/internal/store"
@@ -14,9 +17,37 @@ import (
 	"github.com/tachodril/claude-deck/web"
 )
 
-type Server struct{ st *store.Store }
+type Server struct {
+	st         *store.Store
+	claudeDir  string
+	mu         sync.Mutex
+	lastIngest time.Time
+	ingesting  bool
+}
 
-func New(st *store.Store) *Server { return &Server{st: st} }
+func New(st *store.Store, claudeDir string) *Server {
+	return &Server{st: st, claudeDir: claudeDir, lastIngest: time.Now()}
+}
+
+// maybeReingest refreshes the DB from ~/.claude at most every 15s, in the
+// background, so stored fields (last_used_at, prompts, tokens) stay current
+// while the dashboard is open — and costs nothing when nobody's watching.
+func (s *Server) maybeReingest() {
+	s.mu.Lock()
+	if s.ingesting || time.Since(s.lastIngest) < 15*time.Second {
+		s.mu.Unlock()
+		return
+	}
+	s.ingesting = true
+	s.mu.Unlock()
+	go func() {
+		ingest.Run(s.claudeDir, s.st)
+		s.mu.Lock()
+		s.lastIngest = time.Now()
+		s.ingesting = false
+		s.mu.Unlock()
+	}()
+}
 
 func (s *Server) Listen(addr string) error {
 	mux := http.NewServeMux()
@@ -33,6 +64,7 @@ func (s *Server) Listen(addr string) error {
 // withStatus loads sessions and overlays live status: a cwd with a running
 // claude process marks its most-recently-used session as "running".
 func (s *Server) withStatus() ([]model.Session, error) {
+	s.maybeReingest()
 	sessions, err := s.st.All()
 	if err != nil {
 		return nil, err
@@ -107,6 +139,7 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAnalytics(w http.ResponseWriter, r *http.Request) {
+	s.maybeReingest()
 	sessions, err := s.st.All()
 	if err != nil {
 		http.Error(w, err.Error(), 500)

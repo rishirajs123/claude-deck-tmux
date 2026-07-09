@@ -55,7 +55,7 @@ func main() {
 			_ = exec.Command("open", url).Start()
 		}()
 	}
-	if err := server.New(st).Listen(":" + *port); err != nil {
+	if err := server.New(st, claudeDir).Listen(":" + *port); err != nil {
 		log.Fatal(err)
 	}
 }
