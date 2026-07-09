@@ -21,6 +21,11 @@ func Open(path string) (*Store, error) {
 	if _, err := db.Exec(schema); err != nil {
 		return nil, err
 	}
+	// Migrations for DBs created before a column existed (ADD COLUMN is a no-op
+	// error if it's already there, which is fine).
+	for _, col := range []string{"title TEXT DEFAULT ''", "ai_title TEXT DEFAULT ''"} {
+		db.Exec(`ALTER TABLE sessions ADD COLUMN ` + col)
+	}
 	return &Store{db: db}, nil
 }
 
@@ -39,7 +44,9 @@ CREATE TABLE IF NOT EXISTS sessions (
   first_prompt  TEXT,
   tokens_in     INTEGER,
   tokens_out    INTEGER,
-  current_task  TEXT
+  current_task  TEXT,
+  title         TEXT DEFAULT '',
+  ai_title      TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS session_meta (
   id       TEXT PRIMARY KEY,
@@ -60,14 +67,15 @@ func (s *Store) UpsertAll(sessions []model.Session) error {
 		return err
 	}
 	stmt, err := tx.Prepare(`
-INSERT INTO sessions (id,cwd,project,created_at,last_used_at,duration_secs,prompt_count,message_count,model,git_branch,first_prompt,tokens_in,tokens_out,current_task)
-VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+INSERT INTO sessions (id,cwd,project,created_at,last_used_at,duration_secs,prompt_count,message_count,model,git_branch,first_prompt,tokens_in,tokens_out,current_task,title,ai_title)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 ON CONFLICT(id) DO UPDATE SET
   cwd=excluded.cwd, project=excluded.project, created_at=excluded.created_at,
   last_used_at=excluded.last_used_at, duration_secs=excluded.duration_secs,
   prompt_count=excluded.prompt_count, message_count=excluded.message_count,
   model=excluded.model, git_branch=excluded.git_branch, first_prompt=excluded.first_prompt,
-  tokens_in=excluded.tokens_in, tokens_out=excluded.tokens_out, current_task=excluded.current_task`)
+  tokens_in=excluded.tokens_in, tokens_out=excluded.tokens_out, current_task=excluded.current_task,
+  title=excluded.title, ai_title=excluded.ai_title`)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -75,7 +83,7 @@ ON CONFLICT(id) DO UPDATE SET
 	defer stmt.Close()
 	for _, m := range sessions {
 		if _, err := stmt.Exec(m.ID, m.Cwd, m.Project, m.CreatedAt, m.LastUsedAt, m.DurationSecs,
-			m.PromptCount, m.MessageCount, m.Model, m.GitBranch, m.FirstPrompt, m.TokensIn, m.TokensOut, m.CurrentTask); err != nil {
+			m.PromptCount, m.MessageCount, m.Model, m.GitBranch, m.FirstPrompt, m.TokensIn, m.TokensOut, m.CurrentTask, m.Title, m.AiTitle); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -138,6 +146,7 @@ func (s *Store) All() ([]model.Session, error) {
 	rows, err := s.db.Query(`
 SELECT s.id,s.cwd,s.project,s.created_at,s.last_used_at,s.duration_secs,s.prompt_count,s.message_count,
        s.model,s.git_branch,s.first_prompt,s.tokens_in,s.tokens_out,s.current_task,
+       COALESCE(s.title,''),COALESCE(s.ai_title,''),
        COALESCE(m.favorite,0),COALESCE(m.tags,''),COALESCE(m.notes,'')
 FROM sessions s LEFT JOIN session_meta m ON m.id=s.id
 ORDER BY s.last_used_at DESC`)
@@ -151,6 +160,7 @@ ORDER BY s.last_used_at DESC`)
 		var fav int
 		if err := rows.Scan(&m.ID, &m.Cwd, &m.Project, &m.CreatedAt, &m.LastUsedAt, &m.DurationSecs,
 			&m.PromptCount, &m.MessageCount, &m.Model, &m.GitBranch, &m.FirstPrompt, &m.TokensIn, &m.TokensOut, &m.CurrentTask,
+			&m.Title, &m.AiTitle,
 			&fav, &m.Tags, &m.Notes); err != nil {
 			return nil, err
 		}

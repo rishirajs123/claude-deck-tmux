@@ -14,10 +14,14 @@ type Session struct {
 	Model        string `json:"model"`
 	GitBranch    string `json:"git_branch"`
 	FirstPrompt  string `json:"first_prompt"`
-	TokensIn     int64  `json:"tokens_in"`
-	TokensOut    int64  `json:"tokens_out"`
-	CurrentTask  string `json:"current_task"`
-	Status       string `json:"status"` // running | ended (computed at read time)
+	// Title is the session's custom name (Claude Code's rename feature); AiTitle
+	// is the auto-generated summary. Used to tell same-directory sessions apart.
+	Title       string `json:"title"`
+	AiTitle     string `json:"ai_title"`
+	TokensIn    int64  `json:"tokens_in"`
+	TokensOut   int64  `json:"tokens_out"`
+	CurrentTask string `json:"current_task"`
+	Status      string `json:"status"` // running | ended (computed at read time)
 
 	// user metadata (stored separately so re-ingest can't wipe it)
 	Favorite bool   `json:"favorite"`

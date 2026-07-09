@@ -10,6 +10,8 @@ export interface Session {
   model: string
   git_branch: string
   first_prompt: string
+  title: string
+  ai_title: string
   tokens_in: number
   tokens_out: number
   current_task: string

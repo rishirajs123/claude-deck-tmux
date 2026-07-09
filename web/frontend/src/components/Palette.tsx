@@ -14,7 +14,7 @@ export default function Palette({ sessions, runAction, onClose }: {
   const list = useMemo(() => {
     const ql = q.toLowerCase().trim()
     return sessions
-      .filter(s => !ql || (s.project + ' ' + s.cwd + ' ' + (s.current_task || '')).toLowerCase().includes(ql))
+      .filter(s => !ql || (s.project + ' ' + (s.title || '') + ' ' + (s.ai_title || '') + ' ' + s.cwd + ' ' + (s.current_task || '')).toLowerCase().includes(ql))
       .sort((a, b) => (Number(b.status === 'running') - Number(a.status === 'running')) || (b.last_used_at - a.last_used_at))
       .slice(0, 40)
   }, [sessions, q])
@@ -43,7 +43,7 @@ export default function Palette({ sessions, runAction, onClose }: {
         <div className="presults">
           {list.length ? list.map((s, i) => (
             <div key={s.id} className={'pitem' + (i === sel ? ' sel' : '')} onMouseEnter={() => setSel(i)} onClick={() => run(s)}>
-              <span className={'sdot ' + s.status} /><span className="pp">{s.project}</span>
+              <span className={'sdot ' + s.status} /><span className="pp">{s.title || s.project}</span>
               <span className="pc">{s.status === 'running' ? 'focus' : 'resume'} · {ago(s.last_used_at)}</span>
             </div>
           )) : <div className="pitem">no match</div>}

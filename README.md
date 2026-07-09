@@ -15,6 +15,7 @@ Run Claude Code enough and the sessions pile up — dozens of them, scattered ac
 
 **🛰 See everything, live**
 - **Every session, ever** — auto-ingested from `~/.claude`. Zero setup, nothing to configure.
+- **Named sessions** — shows each session's title (your Claude Code rename, or its auto-generated one), so multiple sessions in the *same* directory are easy to tell apart.
 - **Live status** — which sessions are running *right now* (real process detection), which are idle, which ended — with **live CPU & memory** for each.
 - **Working right now** — spot which running sessions are *actively processing* a prompt (a live pulse + equalizer) versus just sitting idle at the prompt.
 

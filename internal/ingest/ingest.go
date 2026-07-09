@@ -20,11 +20,13 @@ type histRec struct {
 }
 
 type transRec struct {
-	Type      string `json:"type"`
-	Cwd       string `json:"cwd"`
-	GitBranch string `json:"gitBranch"`
-	Timestamp string `json:"timestamp"`
-	Message   struct {
+	Type        string `json:"type"`
+	Cwd         string `json:"cwd"`
+	GitBranch   string `json:"gitBranch"`
+	Timestamp   string `json:"timestamp"`
+	CustomTitle string `json:"customTitle"`
+	AiTitle     string `json:"aiTitle"`
+	Message     struct {
 		Model string `json:"model"`
 		Usage struct {
 			InputTokens  int64 `json:"input_tokens"`
@@ -111,6 +113,12 @@ func Run(claudeDir string, st *store.Store) (int, error) {
 			}
 			if t.Message.Model != "" {
 				s.Model = t.Message.Model
+			}
+			if t.CustomTitle != "" {
+				s.Title = t.CustomTitle
+			}
+			if t.AiTitle != "" {
+				s.AiTitle = t.AiTitle
 			}
 			s.TokensIn += t.Message.Usage.InputTokens
 			s.TokensOut += t.Message.Usage.OutputTokens

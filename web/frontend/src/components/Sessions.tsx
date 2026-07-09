@@ -43,7 +43,7 @@ export default function Sessions({ sessions, handlers }: { sessions: Session[]; 
       if (filter === 'fav') { if (!s.favorite) return false }
       else if (filter !== 'all' && s.status !== filter) return false
       if (ql) {
-        const hay = (s.project + ' ' + s.cwd + ' ' + s.model + ' ' + (s.current_task || '') + ' ' + (s.first_prompt || '') + ' ' + (s.tags || '')).toLowerCase()
+        const hay = (s.project + ' ' + (s.title || '') + ' ' + (s.ai_title || '') + ' ' + s.cwd + ' ' + s.model + ' ' + (s.current_task || '') + ' ' + (s.first_prompt || '') + ' ' + (s.tags || '')).toLowerCase()
         return hay.includes(ql)
       }
       if (win !== Infinity && s.status !== 'running' && !s.favorite) {
@@ -170,7 +170,7 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
           <div className="sessline">
             <span className={'star ' + (s.favorite ? 'on' : '')} onClick={e => { stop(e); h.toggleFav(s) }}>{s.favorite ? '★' : '☆'}</span>
             <span className={'sdot ' + s.status + (wk ? ' working' : '') + (wait ? ' waiting' : '')} />
-            <span className="proj">{s.project || '(unknown)'}</span>
+            <span className="proj">{s.title || s.project || '(unknown)'}</span>
             {wait && <span className="waitchip">⏳ needs you</span>}
             {wk && <span className="workchip">working<i>.</i><i>.</i><i>.</i></span>}
             {tagChips.map(t => <span className="tagchip" key={t}>{t}</span>)}
@@ -188,7 +188,7 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
         <div className="r mononum">{tok ? fmtN(tok) : '—'}</div>
         <div className="mono">{ago(s.last_used_at)}{zomb ? ' ⚠' : ''}</div>
         <div className="mono">{dur(s.duration_secs)}</div>
-        <div className="task">{s.current_task || s.first_prompt || '—'}</div>
+        <div className="task">{s.current_task || s.ai_title || s.first_prompt || '—'}</div>
         <div className="rowact"><RowActions s={s} h={h} /></div>
       </div>
       {wait && s.prompt && (
