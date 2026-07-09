@@ -238,7 +238,7 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 	case "resume":
 		err = terminal.Resume(req.Cwd, req.ID)
 	case "new":
-		err = terminal.NewSession(req.Cwd)
+		err = terminal.NewSession(req.Cwd, req.Text)
 	case "kill":
 		err = terminal.Kill(req.Cwd)
 	case "reveal":

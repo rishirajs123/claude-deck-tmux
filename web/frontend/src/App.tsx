@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session, Stats, Analytics as AnalyticsData, Action } from './types'
-import { getSessions, getStats, getAnalytics, doAction, saveMeta } from './api'
+import { getSessions, getStats, getAnalytics, doAction, saveMeta, launchSession } from './api'
 import { isZombie } from './format'
 import Hero from './components/Hero'
 import Sessions from './components/Sessions'
 import Analytics from './components/Analytics'
 import Palette from './components/Palette'
 import Composer from './components/Composer'
+import NewSession from './components/NewSession'
 
 export interface Handlers {
   runAction: (a: Action, s: Session, text?: string) => Promise<void>
@@ -14,6 +15,7 @@ export interface Handlers {
   saveNote: (s: Session, tags: string, notes: string) => Promise<void>
   killZombies: () => Promise<void>
   openCompose: (s: Session) => void
+  openNew: () => void
 }
 
 export default function App() {
@@ -26,6 +28,7 @@ export default function App() {
   const [toast, setToast] = useState<{ msg: string; kind: string } | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [compose, setCompose] = useState<Session | null>(null)
+  const [newOpen, setNewOpen] = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const showToast = useCallback((msg: string, kind = '') => {
@@ -95,8 +98,20 @@ export default function App() {
   }, [sessions, load, showToast])
 
   const openCompose = useCallback((s: Session) => setCompose(s), [])
+  const openNew = useCallback(() => setNewOpen(true), [])
 
-  const handlers: Handlers = { runAction, toggleFav, saveNote, killZombies, openCompose }
+  const launch = useCallback(async (dir: string, prompt: string) => {
+    showToast('launching…')
+    try {
+      const r = await launchSession(dir, prompt)
+      showToast(r.ok ? 'session launched ✓' : 'launch failed: ' + r.error, r.ok ? 'ok' : 'err')
+    } catch {
+      showToast('launch failed', 'err')
+    }
+    setTimeout(load, 800)
+  }, [load, showToast])
+
+  const handlers: Handlers = { runAction, toggleFav, saveNote, killZombies, openCompose, openNew }
   const zombies = sessions.filter(isZombie).length
 
   return (
@@ -109,6 +124,7 @@ export default function App() {
           <button className={view === 'analytics' ? 'on' : ''} onClick={() => setView('analytics')}>Analytics</button>
         </div>
         <div className="right">
+          <button className="newbtn" onClick={openNew}>＋ New session</button>
           <button className="iconbtn" onClick={() => setPaletteOpen(true)}>⌘K</button>
           <button className="iconbtn" onClick={() => setPaused(p => !p)}>{paused ? '▶' : '⏸'}</button>
           <button className="iconbtn" onClick={load}>⟳</button>
@@ -125,6 +141,7 @@ export default function App() {
 
       {paletteOpen && <Palette sessions={sessions} runAction={runAction} onClose={() => setPaletteOpen(false)} />}
       {compose && <Composer session={compose} runAction={runAction} onClose={() => setCompose(null)} />}
+      {newOpen && <NewSession sessions={sessions} onLaunch={launch} onClose={() => setNewOpen(false)} />}
       {toast && <div className={'toast ' + toast.kind}>{toast.msg}</div>}
     </div>
   )

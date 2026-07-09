@@ -14,6 +14,14 @@ export function doAction(action: Action, s: Session, text?: string): Promise<{ o
   }).then(j)
 }
 
+export function launchSession(cwd: string, prompt: string): Promise<{ ok: boolean; error?: string }> {
+  return fetch('/api/action', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'new', id: '', cwd, text: prompt }),
+  }).then(j)
+}
+
 export function saveMeta(id: string, favorite: boolean, tags: string, notes: string) {
   return fetch('/api/meta', {
     method: 'POST',

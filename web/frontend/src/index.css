@@ -195,6 +195,17 @@ input[type=search]:focus{border-color:var(--ice)}
 .cmpbtns{display:flex;gap:8px}
 .btn:disabled{opacity:.4;cursor:default}
 .btn:disabled:hover{border-color:var(--hull)}
+/* new session */
+.nsbody{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.nsfield{display:flex;flex-direction:column;gap:6px}
+.nsfield label{font-family:var(--disp);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.nsfield label .opt{margin-left:6px;letter-spacing:0;text-transform:none;font-family:var(--sans);font-size:10px;opacity:.75}
+.nsfield input,.nsarea{background:rgba(11,14,19,.5);border:1px solid var(--hull);color:var(--txt);border-radius:9px;padding:10px 12px;font-size:13px;font-family:var(--mono);outline:none}
+.nsarea{min-height:92px;line-height:1.5;resize:vertical}
+.nsfield input:focus,.nsarea:focus{border-color:var(--ice)}
+.nsfield input::placeholder,.nsarea::placeholder{color:var(--faint)}
+.newbtn{background:rgba(95,224,240,.1);border:1px solid rgba(95,224,240,.45);color:var(--ice);border-radius:9px;padding:7px 13px;font-size:12.5px;font-family:var(--sans);cursor:pointer;white-space:nowrap}
+.newbtn:hover{background:rgba(95,224,240,.16);border-color:var(--ice)}
 .toast{position:fixed;bottom:22px;right:22px;background:var(--panel2);border:1px solid var(--hull);color:var(--txt);padding:11px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:440px;z-index:60}
 .toast.ok{border-color:rgba(95,224,240,.5)}
 .toast.err{border-color:rgba(255,107,107,.5)}

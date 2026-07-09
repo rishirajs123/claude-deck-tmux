@@ -5,7 +5,9 @@ package terminal
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/tachodril/claude-deck/internal/live"
@@ -61,9 +63,39 @@ func Resume(cwd, id string) error {
 	return openTab(shellCmd(cwd, "claude --resume "+shQuote(id)))
 }
 
-// NewSession opens a new iTerm2 tab in cwd and starts a fresh claude session.
-func NewSession(cwd string) error {
-	return openTab(shellCmd(cwd, "claude"))
+// NewSession opens a new iTerm2 tab in dir and starts a fresh claude session.
+// A non-empty prompt is passed as claude's initial prompt (submitted on start).
+func NewSession(dir, prompt string) error {
+	d, err := expandDir(dir)
+	if err != nil {
+		return err
+	}
+	cmd := "claude"
+	if strings.TrimSpace(prompt) != "" {
+		cmd += " " + shQuote(prompt)
+	}
+	return openTab(shellCmd(d, cmd))
+}
+
+func expandDir(p string) (string, error) {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return "", fmt.Errorf("directory is required")
+	}
+	if p == "~" || strings.HasPrefix(p, "~/") {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			p = filepath.Join(home, strings.TrimPrefix(p, "~"))
+		}
+	}
+	info, err := os.Stat(p)
+	if err != nil {
+		return "", fmt.Errorf("no such directory: %s", p)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("not a directory: %s", p)
+	}
+	return p, nil
 }
 
 // SendText types text into the running session's iTerm2 tab and submits it
@@ -161,20 +193,21 @@ func shQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) 
 func shellCmd(cwd, cmd string) string { return "cd " + shQuote(cwd) + " && " + cmd }
 
 func openTab(cmd string) error {
-	esc := strings.ReplaceAll(cmd, `\`, `\\`)
-	esc = strings.ReplaceAll(esc, `"`, `\"`)
-	script := fmt.Sprintf(`tell application "iTerm2"
-  activate
-  if (count of windows) = 0 then
-    set w to (create window with default profile)
-    tell current session of w to write text "%s"
-  else
-    tell current window
-      set t to (create tab with default profile)
-      tell current session of t to write text "%s"
-    end tell
-  end if
-end tell`, esc, esc)
-	_, err := osa(script)
+	script := `on run argv
+  set theCmd to item 1 of argv
+  tell application "iTerm2"
+    activate
+    if (count of windows) = 0 then
+      set w to (create window with default profile)
+      tell current session of w to write text theCmd
+    else
+      tell current window
+        set t to (create tab with default profile)
+        tell current session of t to write text theCmd
+      end tell
+    end if
+  end tell
+end run`
+	_, err := osaArgs(script, cmd)
 	return err
 }

@@ -18,6 +18,7 @@ Run Claude Code enough and the sessions pile up — dozens of them, scattered ac
 - **Live status** — which sessions are running *right now* (real process detection), which are idle, which ended — with **live CPU & memory** for each.
 
 **🎮 Drive a session from your browser**
+- **Start a new session** — pick a directory (optionally seed a first prompt) and ClaudeDeck opens a new iTerm2 tab running `claude` right there.
 - **Compose & send** — write or paste a long prompt (or a `/command`) in a proper editor and fire it straight into a running session. Multi-line arrives as *one* message — far nicer than wrestling with it in the terminal.
 - **Act on a running session** — **switch its model**, **compact**, **clear**, or **kill** it, right from its row.
 - **Jump & resume** — one click to focus a running session's iTerm2 tab, or reopen a finished one with `claude --resume`.
