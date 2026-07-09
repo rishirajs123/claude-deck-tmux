@@ -112,6 +112,24 @@ input[type=search]:focus{border-color:var(--ice)}
 .res-cell.hi{color:var(--amber)}
 .spark{display:inline-flex;align-items:flex-end;gap:2px;height:15px}
 .spark i{width:3px;background:var(--ice);border-radius:1px;box-shadow:0 0 5px rgba(95,224,240,.5)}
+/* working (actively processing) cues */
+.sdot.running.working{position:relative}
+.sdot.running.working::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:1.5px solid var(--ice);animation:cdping 1.5s ease-out infinite}
+@keyframes cdping{0%{transform:scale(.6);opacity:.85}100%{transform:scale(2.6);opacity:0}}
+.workchip{margin-left:9px;font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--ice);opacity:.92}
+.workchip i{font-style:normal;animation:cdblink 1.4s infinite}
+.workchip i:nth-of-type(2){animation-delay:.2s}
+.workchip i:nth-of-type(3){animation-delay:.4s}
+@keyframes cdblink{0%,65%,100%{opacity:.2}32%{opacity:1}}
+.spark.live i{transform-origin:bottom;animation:cdeq .9s ease-in-out infinite}
+.spark.live i:nth-of-type(2){animation-delay:.15s}
+.spark.live i:nth-of-type(3){animation-delay:.3s}
+.spark.live i:nth-of-type(4){animation-delay:.45s}
+@keyframes cdeq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){
+  .sdot.running.working::after{animation:none;opacity:.5}
+  .workchip i,.spark.live i{animation:none}
+}
 .rowact{white-space:nowrap;text-align:right}
 .rowactions{position:relative;display:inline-flex;gap:5px;align-items:center;justify-content:flex-end}
 .rowactions>.btn,.rowactions>.menutrig{opacity:.42;transition:opacity .12s}

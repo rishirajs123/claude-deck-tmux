@@ -16,6 +16,7 @@ Run Claude Code enough and the sessions pile up — dozens of them, scattered ac
 **🛰 See everything, live**
 - **Every session, ever** — auto-ingested from `~/.claude`. Zero setup, nothing to configure.
 - **Live status** — which sessions are running *right now* (real process detection), which are idle, which ended — with **live CPU & memory** for each.
+- **Working right now** — spot which running sessions are *actively processing* a prompt (a live pulse + equalizer) versus just sitting idle at the prompt.
 
 **🎮 Drive a session from your browser**
 - **Start a new session** — pick a directory (created for you if it doesn't exist) and optionally seed a first prompt; ClaudeDeck opens a new iTerm2 tab running `claude` right there.

@@ -137,6 +137,7 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
   const [notes, setNotes] = useState(s.notes || '')
   const [more, setMore] = useState(false)
   const run = s.status === 'running'
+  const wk = run && s.working
   const zomb = isZombie(s)
   const tok = (s.tokens_in || 0) + (s.tokens_out || 0)
   const model = (s.model || '').replace('claude-', '')
@@ -164,8 +165,9 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
         <div className="sesscell">
           <div className="sessline">
             <span className={'star ' + (s.favorite ? 'on' : '')} onClick={e => { stop(e); h.toggleFav(s) }}>{s.favorite ? '★' : '☆'}</span>
-            <span className={'sdot ' + s.status} />
+            <span className={'sdot ' + s.status + (wk ? ' working' : '')} />
             <span className="proj">{s.project || '(unknown)'}</span>
+            {wk && <span className="workchip">working<i>.</i><i>.</i><i>.</i></span>}
             {tagChips.map(t => <span className="tagchip" key={t}>{t}</span>)}
           </div>
           <div className="cwd">{s.cwd || s.id}</div>
@@ -173,7 +175,7 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
         <div><span className="badge">{model || '—'}</span></div>
         <div>{run
           ? <span className={'res-cell ' + (s.cpu >= 80 ? 'hi' : '')}>
-              <span className="spark"><i style={{ height: '45%' }} /><i style={{ height: '75%' }} /><i style={{ height: '55%' }} /><i style={{ height: '88%' }} /></span>
+              <span className={'spark' + (wk ? ' live' : '')}><i style={{ height: '45%' }} /><i style={{ height: '75%' }} /><i style={{ height: '55%' }} /><i style={{ height: '88%' }} /></span>
               {s.cpu.toFixed(0)}% · {mem(s.mem_mb)}
             </span>
           : <span className="res-cell off">—</span>}</div>

@@ -27,6 +27,10 @@ type Session struct {
 	// live resource usage (running sessions only, computed at read time)
 	CPU   float64 `json:"cpu"`    // %CPU (can exceed 100 across cores)
 	MemMB float64 `json:"mem_mb"` // resident memory in MB
+
+	// Working is true when the session is actively processing right now,
+	// inferred from very recent transcript writes (running sessions only).
+	Working bool `json:"working"`
 }
 
 // Day is one bucket of the activity heatmap.

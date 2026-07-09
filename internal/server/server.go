@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -80,6 +83,7 @@ func (s *Server) withStatus() ([]model.Session, error) {
 			newest[ss.Cwd] = ss.LastUsedAt
 		}
 	}
+	tpaths := transcriptPaths(s.claudeDir)
 	usageCache := map[string][2]float64{}
 	for i := range sessions {
 		s := &sessions[i]
@@ -91,11 +95,34 @@ func (s *Server) withStatus() ([]model.Session, error) {
 				s.CPU, s.MemMB = live.UsageForPids(pids)
 				usageCache[s.Cwd] = [2]float64{s.CPU, s.MemMB}
 			}
+			s.Working = s.CPU > workingCPU
+			if !s.Working {
+				if fi, err := os.Stat(tpaths[s.ID]); err == nil {
+					s.Working = time.Since(fi.ModTime()) < workingWindow
+				}
+			}
 		} else {
 			s.Status = "ended"
 		}
 	}
 	return sessions, nil
+}
+
+// A running session is "working" if it's burning CPU (an idle Claude sits near
+// 0%, blocked on input) or its transcript was written very recently.
+const (
+	workingCPU    = 10.0
+	workingWindow = 15 * time.Second
+)
+
+// transcriptPaths maps session id -> its transcript file path (one glob).
+func transcriptPaths(claudeDir string) map[string]string {
+	m := map[string]string{}
+	files, _ := filepath.Glob(filepath.Join(claudeDir, "projects", "*", "*.jsonl"))
+	for _, fp := range files {
+		m[strings.TrimSuffix(filepath.Base(fp), ".jsonl")] = fp
+	}
+	return m
 }
 
 func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {

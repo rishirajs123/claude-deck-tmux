@@ -19,6 +19,7 @@ export interface Session {
   notes: string
   cpu: number
   mem_mb: number
+  working: boolean
 }
 
 export interface Stats {
