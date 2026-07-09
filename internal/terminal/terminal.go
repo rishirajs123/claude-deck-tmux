@@ -121,7 +121,8 @@ func SendMessage(cwd, text string) error {
         repeat with s in sessions of t
           if tty of s is theTty then
             tell s to write text ((ASCII character 27) & "[200~" & theText & (ASCII character 27) & "[201~") newline no
-            tell s to write text ""
+            delay 0.1
+            tell s to write text (ASCII character 13) newline no
             return "ok"
           end if
         end repeat
