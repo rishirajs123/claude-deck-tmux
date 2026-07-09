@@ -53,7 +53,6 @@ Run Claude Code enough and the sessions pile up — dozens of them, scattered ac
 curl -fsSL https://raw.githubusercontent.com/tachodril/claude-deck/main/install.sh | bash
 claude-deck              # opens http://localhost:7420
 ```
-Add `--service` to the installer to also run it always-on (see below).
 
 **Or build from source** (needs Go 1.24+ and Node 18+):
 ```bash
@@ -63,10 +62,13 @@ git clone https://github.com/tachodril/claude-deck && cd claude-deck
 ```
 
 ## Always-on (auto-start at login, restart on crash)
+So you never have to launch it by hand:
 ```bash
-./deploy/install-service.sh      # or: make service
+claude-deck --install-service
 ```
-Installs a macOS `launchd` agent. Remove with `./deploy/uninstall-service.sh`.
+That installs a macOS `launchd` agent that keeps ClaudeDeck running at
+http://localhost:7420 — starting at login and restarting if it crashes. Turn it
+off any time with `claude-deck --uninstall-service`.
 
 ## How it works
 A single Go binary embeds the React UI and serves it on `localhost`. On startup it ingests your session data into a local SQLite DB (`~/.claude/claude-deck.db`) and computes live status from running processes.

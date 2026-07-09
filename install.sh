@@ -64,7 +64,8 @@ EOF
     launchctl load -w "$PLIST"
     echo "✓ always-on at http://localhost:7420"
   else
-    echo "run it:  claude-deck    (add --service to the installer for always-on)"
+    echo "run it:          claude-deck"
+    echo "keep it running: claude-deck --install-service   (auto-starts at login)"
   fi
 }
 main "$@"

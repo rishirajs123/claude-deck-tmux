@@ -21,9 +21,23 @@ func main() {
 	port := flag.String("port", "7420", "port to serve on")
 	noOpen := flag.Bool("no-open", false, "do not auto-open the browser")
 	showVer := flag.Bool("version", false, "print version and exit")
+	installSvc := flag.Bool("install-service", false, "run ClaudeDeck always-on (auto-start at login), then exit")
+	uninstallSvc := flag.Bool("uninstall-service", false, "remove the always-on service, then exit")
 	flag.Parse()
 	if *showVer {
 		fmt.Println("claude-deck", version)
+		return
+	}
+	if *installSvc {
+		if err := installService(*port); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if *uninstallSvc {
+		if err := uninstallService(); err != nil {
+			log.Fatal(err)
+		}
 		return
 	}
 
