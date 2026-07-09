@@ -140,15 +140,19 @@ func (s *Server) withStatus() ([]model.Session, error) {
 	waiting := s.waiting
 	s.promptsMu.Unlock()
 	usageCache := map[string][2]float64{}
+	bypassCache := map[string]bool{}
 	for i := range sessions {
 		s := &sessions[i]
 		if running[s.Cwd] && s.LastUsedAt == newest[s.Cwd] {
 			s.Status = "running"
 			if u, ok := usageCache[s.Cwd]; ok {
 				s.CPU, s.MemMB = u[0], u[1]
+				s.Bypass = bypassCache[s.Cwd]
 			} else if pids := procs[s.Cwd]; len(pids) > 0 {
 				s.CPU, s.MemMB = live.UsageForPids(pids)
+				s.Bypass = live.Bypassed(pids)
 				usageCache[s.Cwd] = [2]float64{s.CPU, s.MemMB}
+				bypassCache[s.Cwd] = s.Bypass
 			}
 			s.Working = s.CPU > workingCPU
 			if !s.Working {
@@ -348,6 +352,8 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 		err = terminal.SendMessage(req.Cwd, req.Text)
 	case "bypass":
 		err = terminal.RestartWithFlags(req.Cwd, req.ID, "--dangerously-skip-permissions")
+	case "unbypass":
+		err = terminal.RestartWithFlags(req.Cwd, req.ID, "--permission-mode default")
 	default:
 		err = fmt.Errorf("unknown action %q", req.Action)
 	}

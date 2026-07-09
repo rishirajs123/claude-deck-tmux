@@ -31,6 +31,11 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
       setOpen(false); h.runAction('bypass', s)
     }
   }
+  const unbypass = () => {
+    if (confirm('Turn skip-permissions off for this session?\n\nIt exits and resumes the same session in default mode, so permission prompts come back.')) {
+      setOpen(false); h.runAction('unbypass', s)
+    }
+  }
 
   return (
     <div className={'rowactions' + (open ? ' open' : '')} ref={ref} onClick={stop}>
@@ -60,7 +65,9 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
               <div className="midiv">Session control</div>
               <button className="mi" onClick={() => send('/compact', 'Compact this session? It summarizes the conversation and drops detail.')}>«» Compact</button>
               <button className="mi" onClick={() => send('/clear', 'Clear this session? Starts fresh (recoverable via /resume).')}>⌫ Clear</button>
-              <button className="mi" onClick={bypass}>⚡ Skip-permissions (restart)</button>
+              {s.bypass
+                ? <button className="mi" onClick={unbypass}>🛡 Turn skip-permissions off (restart)</button>
+                : <button className="mi" onClick={bypass}>⚡ Skip-permissions (restart)</button>}
               <button className="mi danger" onClick={kill}>✕ Kill session</button>
             </>
           )}

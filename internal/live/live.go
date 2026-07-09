@@ -101,6 +101,21 @@ func RegistryCwds() map[string]bool {
 }
 
 // UsageForPids sums %CPU and resident memory (MB) across the given pids.
+// Bypassed reports whether any of the pids was launched with permission checks
+// bypassed (--dangerously-skip-permissions or --permission-mode bypassPermissions).
+// bypass is a startup-only mode, so the process args are authoritative.
+func Bypassed(pids []string) bool {
+	if len(pids) == 0 {
+		return false
+	}
+	out, err := exec.Command("ps", "-o", "args=", "-p", strings.Join(pids, ",")).Output()
+	if err != nil {
+		return false
+	}
+	s := string(out)
+	return strings.Contains(s, "--dangerously-skip-permissions") || strings.Contains(s, "bypassPermissions")
+}
+
 func UsageForPids(pids []string) (cpu, memMB float64) {
 	if len(pids) == 0 {
 		return 0, 0

@@ -52,4 +52,4 @@ export interface EnvStats {
   agent_daily: EnvCount[]
 }
 
-export type Action = 'focus' | 'resume' | 'new' | 'kill' | 'reveal' | 'send' | 'message' | 'bypass'
+export type Action = 'focus' | 'resume' | 'new' | 'kill' | 'reveal' | 'send' | 'message' | 'bypass' | 'unbypass'

@@ -22,7 +22,7 @@ Run Claude Code enough and the sessions pile up — dozens of them, scattered ac
 - **Start a new session** — pick a directory (created for you if it doesn't exist) and optionally seed a first prompt; ClaudeDeck opens a new iTerm2 tab running `claude` right there.
 - **Compose & send** — write or paste a long prompt (or a `/command`) in a proper editor and fire it straight into a running session. Multi-line arrives as *one* message — far nicer than wrestling with it in the terminal.
 - **Answer when a session needs you** — ClaudeDeck flags any session sitting on a yes/no permission prompt, shows you the exact question, and lets you pick the answer right from the dashboard.
-- **Act on a running session** — **switch its model**, **compact**, **clear**, flip on **skip-permissions** (restarts in place), or **kill** it, right from its row.
+- **Act on a running session** — **switch its model**, **compact**, **clear**, toggle **skip-permissions** on or off (it detects the current mode and restarts in place), or **kill** it, right from its row.
 - **Jump & resume** — one click to focus a running session's iTerm2 tab, or reopen a finished one with `claude --resume`.
 
 **📊 Understand your usage**

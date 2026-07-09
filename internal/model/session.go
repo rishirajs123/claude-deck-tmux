@@ -36,6 +36,10 @@ type Session struct {
 	// prompt in its terminal; Prompt carries the question + choices when parsed.
 	Waiting bool    `json:"waiting"`
 	Prompt  *Prompt `json:"prompt,omitempty"`
+
+	// Bypass is true when the running session was started with permission checks
+	// skipped (--dangerously-skip-permissions).
+	Bypass bool `json:"bypass"`
 }
 
 // PromptOption is one selectable choice in a terminal prompt. Key is the key to
