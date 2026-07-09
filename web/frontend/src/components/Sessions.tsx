@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Session } from '../types'
 import type { Handlers } from '../App'
 import { ago, dur, fmtN, mem, isZombie } from '../format'
+import RowActions from './RowActions'
 
 type SortKey = 'project' | 'model' | 'resources' | 'prompt_count' | 'tokens' | 'last_used_at' | 'duration_secs' | 'task'
 
@@ -134,6 +135,7 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
   const [tags, setTags] = useState<string[]>(() => (s.tags || '').split(',').map(t => t.trim()).filter(Boolean))
   const [tagInput, setTagInput] = useState('')
   const [notes, setNotes] = useState(s.notes || '')
+  const [more, setMore] = useState(false)
   const run = s.status === 'running'
   const zomb = isZombie(s)
   const tok = (s.tokens_in || 0) + (s.tokens_out || 0)
@@ -180,31 +182,11 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
         <div className="mono">{ago(s.last_used_at)}{zomb ? ' ⚠' : ''}</div>
         <div className="mono">{dur(s.duration_secs)}</div>
         <div className="task">{s.current_task || s.first_prompt || '—'}</div>
-        <div className="rowact">{run
-          ? <button className="btn go" onClick={e => { stop(e); h.runAction('focus', s) }}>▶ Focus</button>
-          : <button className="btn res" onClick={e => { stop(e); h.runAction('resume', s) }}>↻ Resume</button>}</div>
+        <div className="rowact"><RowActions s={s} h={h} /></div>
       </div>
       {open && (
         <div className="mdetail">
-          <div className="kv">
-            <div><b>Session</b> <span className="mono">{s.id}</span></div>
-            <div><b>Created</b> {s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</div>
-            <div><b>Messages</b> {s.message_count || 0}</div>
-            <div><b>Git branch</b> {s.git_branch || '—'}</div>
-            <div><b>Tokens</b> in {fmtN(s.tokens_in || 0)} · out {fmtN(s.tokens_out || 0)}</div>
-            <div><b>Status</b> {s.status}{zomb ? ' (idle zombie)' : ''}</div>
-            {run && <div><b>CPU / Memory</b> {(s.cpu || 0).toFixed(1)}% · {(s.mem_mb || 0).toFixed(0)} MB</div>}
-          </div>
-          {s.first_prompt && <div style={{ marginTop: 8 }}><b>First prompt:</b> {s.first_prompt}</div>}
-          {s.current_task && <div style={{ marginTop: 6 }}><b>Task:</b> {s.current_task}</div>}
-          <div className="actbar">
-            {run
-              ? <button className="btn go" onClick={e => { stop(e); h.runAction('focus', s) }}>▶ Focus tab</button>
-              : <button className="btn res" onClick={e => { stop(e); h.runAction('resume', s) }}>↻ Resume session</button>}
-            <button className="btn" onClick={e => { stop(e); h.runAction('reveal', s) }}>📁 Reveal</button>
-            <button className="btn" onClick={e => { stop(e); navigator.clipboard.writeText(`cd '${s.cwd}' && claude --resume '${s.id}'`) }}>⧉ Copy resume</button>
-            {run && <button className="btn danger" onClick={e => { stop(e); h.runAction('kill', s) }}>✕ Kill</button>}
-          </div>
+          {s.current_task && <div style={{ marginBottom: 12 }}><b>Task:</b> {s.current_task}</div>}
           <div className="metabar">
             <div className="tageditor" onClick={e => { stop(e); (e.currentTarget.querySelector('input') as HTMLInputElement | null)?.focus() }}>
               {tags.map(t => (
@@ -216,6 +198,21 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
             <textarea rows={1} placeholder="notes…" value={notes} onClick={stop} onChange={e => setNotes(e.target.value)} />
             <button className="btn" onClick={saveMeta2}>Save</button>
           </div>
+          <button className="moreinfo" onClick={e => { stop(e); setMore(m => !m) }}>ⓘ Additional info {more ? '▾' : '▸'}</button>
+          {more && (
+            <>
+              <div className="kv" style={{ marginTop: 12 }}>
+                <div><b>Session</b> <span className="mono">{s.id}</span></div>
+                <div><b>Created</b> {s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</div>
+                <div><b>Messages</b> {s.message_count || 0}</div>
+                <div><b>Git branch</b> {s.git_branch || '—'}</div>
+                <div><b>Tokens</b> in {fmtN(s.tokens_in || 0)} · out {fmtN(s.tokens_out || 0)}</div>
+                <div><b>Status</b> {s.status}{zomb ? ' (idle zombie)' : ''}</div>
+                {run && <div><b>CPU / Memory</b> {(s.cpu || 0).toFixed(1)}% · {(s.mem_mb || 0).toFixed(0)} MB</div>}
+              </div>
+              {s.first_prompt && <div style={{ marginTop: 8 }}><b>First prompt:</b> {s.first_prompt}</div>}
+            </>
+          )}
         </div>
       )}
     </>

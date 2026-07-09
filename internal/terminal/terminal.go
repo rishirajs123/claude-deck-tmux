@@ -64,6 +64,41 @@ func NewSession(cwd string) error {
 	return openTab(shellCmd(cwd, "claude"))
 }
 
+// SendText types text into the running session's iTerm2 tab and submits it
+// (a trailing newline). Used to inject slash commands like /model, /compact.
+func SendText(cwd, text string) error {
+	if text == "" {
+		return fmt.Errorf("empty command")
+	}
+	tty := live.TtyForCwd(cwd)
+	if tty == "" {
+		return fmt.Errorf("no running session in %s", cwd)
+	}
+	esc := strings.ReplaceAll(text, `\`, `\\`)
+	esc = strings.ReplaceAll(esc, `"`, `\"`)
+	script := fmt.Sprintf(`tell application "iTerm2"
+  repeat with w in windows
+    repeat with t in tabs of w
+      repeat with s in sessions of t
+        if tty of s is %q then
+          tell s to write text "%s"
+          return "ok"
+        end if
+      end repeat
+    end repeat
+  end repeat
+  return "notfound"
+end tell`, tty, esc)
+	out, err := osa(script)
+	if err != nil {
+		return err
+	}
+	if out == "notfound" {
+		return fmt.Errorf("session tty %s not found", tty)
+	}
+	return nil
+}
+
 // Kill terminates the claude process(es) running in cwd.
 func Kill(cwd string) error {
 	pids := live.ClaudeProcs()[cwd]

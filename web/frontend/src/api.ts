@@ -6,11 +6,11 @@ export const getSessions = (): Promise<Session[]> => fetch('/api/sessions').then
 export const getStats = (): Promise<Stats> => fetch('/api/stats').then(j)
 export const getAnalytics = (): Promise<Analytics> => fetch('/api/analytics').then(j)
 
-export function doAction(action: Action, s: Session): Promise<{ ok: boolean; error?: string }> {
+export function doAction(action: Action, s: Session, text?: string): Promise<{ ok: boolean; error?: string }> {
   return fetch('/api/action', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action, id: s.id, cwd: s.cwd }),
+    body: JSON.stringify({ action, id: s.id, cwd: s.cwd, text: text || '' }),
   }).then(j)
 }
 

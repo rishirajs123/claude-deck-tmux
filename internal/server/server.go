@@ -226,7 +226,7 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "POST only", 405)
 		return
 	}
-	var req struct{ Action, ID, Cwd string }
+	var req struct{ Action, ID, Cwd, Text string }
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), 400)
 		return
@@ -243,6 +243,8 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 		err = terminal.Kill(req.Cwd)
 	case "reveal":
 		err = terminal.Reveal(req.Cwd)
+	case "send":
+		err = terminal.SendText(req.Cwd, req.Text)
 	default:
 		err = fmt.Errorf("unknown action %q", req.Action)
 	}

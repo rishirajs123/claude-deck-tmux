@@ -8,7 +8,7 @@ import Analytics from './components/Analytics'
 import Palette from './components/Palette'
 
 export interface Handlers {
-  runAction: (a: Action, s: Session) => Promise<void>
+  runAction: (a: Action, s: Session, text?: string) => Promise<void>
   toggleFav: (s: Session) => Promise<void>
   saveNote: (s: Session, tags: string, notes: string) => Promise<void>
   killZombies: () => Promise<void>
@@ -58,13 +58,14 @@ export default function App() {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  const runAction = useCallback(async (action: Action, s: Session) => {
-    showToast(action + '…')
+  const runAction = useCallback(async (action: Action, s: Session, text?: string) => {
+    const label = action === 'send' ? (text || 'command') : action
+    showToast(label + '…')
     try {
-      const r = await doAction(action, s)
-      showToast(r.ok ? action + ' ✓' : action + ' failed: ' + r.error, r.ok ? 'ok' : 'err')
+      const r = await doAction(action, s, text)
+      showToast(r.ok ? label + ' ✓' : label + ' failed: ' + r.error, r.ok ? 'ok' : 'err')
     } catch {
-      showToast(action + ' failed', 'err')
+      showToast(label + ' failed', 'err')
     }
     setTimeout(load, 500)
   }, [load, showToast])
