@@ -20,7 +20,12 @@ export interface Session {
   cpu: number
   mem_mb: number
   working: boolean
+  waiting: boolean
+  prompt?: Prompt
 }
+
+export interface PromptOption { key: string; label: string }
+export interface Prompt { question: string; options: PromptOption[] }
 
 export interface Stats {
   total: number
@@ -47,4 +52,4 @@ export interface EnvStats {
   agent_daily: EnvCount[]
 }
 
-export type Action = 'focus' | 'resume' | 'new' | 'kill' | 'reveal' | 'send' | 'message'
+export type Action = 'focus' | 'resume' | 'new' | 'kill' | 'reveal' | 'send' | 'message' | 'bypass'

@@ -126,9 +126,25 @@ input[type=search]:focus{border-color:var(--ice)}
 .spark.live i:nth-of-type(3){animation-delay:.3s}
 .spark.live i:nth-of-type(4){animation-delay:.45s}
 @keyframes cdeq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+/* needs-you (waiting on a permission prompt) */
+.sdot.running.waiting{background:var(--amber);box-shadow:0 0 10px var(--amber);animation:cdpulse 1.2s ease-in-out infinite}
+@keyframes cdpulse{0%,100%{opacity:1}50%{opacity:.32}}
+.mrow.need{background:linear-gradient(90deg,rgba(255,184,77,.17),rgba(19,25,34,.42) 44%);border-color:rgba(255,184,77,.38);box-shadow:inset 3px 0 0 var(--amber)}
+.waitchip{margin-left:9px;font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--amber);background:rgba(255,184,77,.1);border:1px solid rgba(255,184,77,.35);border-radius:5px;padding:1px 7px}
+.needpanel{background:rgba(30,25,15,.6);border:1px solid rgba(255,184,77,.3);border-left:3px solid var(--amber);border-radius:12px;padding:13px 16px;margin:5px 0;backdrop-filter:blur(6px)}
+.needq{color:var(--txt);font-size:13px;margin-bottom:11px;line-height:1.45}
+.needlabel{font-family:var(--disp);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin-right:10px}
+.needopts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.needopt{background:rgba(255,184,77,.08);border:1px solid rgba(255,184,77,.4);color:var(--amber);border-radius:8px;padding:7px 12px;font-size:12.5px;font-family:var(--sans);cursor:pointer;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.needopt:hover{background:rgba(255,184,77,.16);border-color:var(--amber)}
+.needopt b{font-family:var(--mono);margin-right:4px}
+.needfocus{background:none;border:1px solid var(--hull);color:var(--dim);border-radius:8px;padding:7px 11px;font-size:12px;cursor:pointer}
+.needfocus:hover{border-color:var(--ice);color:var(--ice)}
+.needsent{color:var(--amber);font-size:12.5px;font-family:var(--mono)}
+.alert.wait{color:var(--amber);border-color:rgba(255,184,77,.4);background:rgba(255,184,77,.08)}
 @media (prefers-reduced-motion:reduce){
   .sdot.running.working::after{animation:none;opacity:.5}
-  .workchip i,.spark.live i{animation:none}
+  .workchip i,.spark.live i,.sdot.running.waiting{animation:none}
 }
 .rowact{white-space:nowrap;text-align:right}
 .rowactions{position:relative;display:inline-flex;gap:5px;align-items:center;justify-content:flex-end}

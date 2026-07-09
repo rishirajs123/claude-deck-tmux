@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Session } from '../types'
 import type { Handlers } from '../App'
 import { ago, dur, fmtN, mem, isZombie } from '../format'
@@ -136,9 +136,13 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
   const [tagInput, setTagInput] = useState('')
   const [notes, setNotes] = useState(s.notes || '')
   const [more, setMore] = useState(false)
+  const [sent, setSent] = useState<string | null>(null)
   const run = s.status === 'running'
   const wk = run && s.working
+  const wait = run && s.waiting && !!s.prompt
   const zomb = isZombie(s)
+  useEffect(() => { if (!wait) setSent(null) }, [wait])
+  const answer = (o: { key: string; label: string }) => { setSent(o.label); h.runAction('send', s, o.key) }
   const tok = (s.tokens_in || 0) + (s.tokens_out || 0)
   const model = (s.model || '').replace('claude-', '')
   const tagChips = (s.tags || '').split(',').map(t => t.trim()).filter(Boolean)
@@ -161,12 +165,13 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
 
   return (
     <>
-      <div className={'mrow' + (run ? ' run' : '') + (zomb ? ' zomb' : '')} onClick={() => onToggle(s.id)}>
+      <div className={'mrow' + (run ? ' run' : '') + (zomb ? ' zomb' : '') + (wait ? ' need' : '')} onClick={() => onToggle(s.id)}>
         <div className="sesscell">
           <div className="sessline">
             <span className={'star ' + (s.favorite ? 'on' : '')} onClick={e => { stop(e); h.toggleFav(s) }}>{s.favorite ? '★' : '☆'}</span>
-            <span className={'sdot ' + s.status + (wk ? ' working' : '')} />
+            <span className={'sdot ' + s.status + (wk ? ' working' : '') + (wait ? ' waiting' : '')} />
             <span className="proj">{s.project || '(unknown)'}</span>
+            {wait && <span className="waitchip">⏳ needs you</span>}
             {wk && <span className="workchip">working<i>.</i><i>.</i><i>.</i></span>}
             {tagChips.map(t => <span className="tagchip" key={t}>{t}</span>)}
           </div>
@@ -186,6 +191,21 @@ function Row({ s, open, onToggle, h }: { s: Session; open: boolean; onToggle: (i
         <div className="task">{s.current_task || s.first_prompt || '—'}</div>
         <div className="rowact"><RowActions s={s} h={h} /></div>
       </div>
+      {wait && s.prompt && (
+        <div className="needpanel" onClick={stop}>
+          <div className="needq"><span className="needlabel">⏳ Waiting for you</span>{s.prompt.question || 'Claude is waiting for your choice.'}</div>
+          {sent
+            ? <div className="needsent">Sent “{sent}” ✓ · updating…</div>
+            : <div className="needopts">
+                {s.prompt.options.map(o => (
+                  <button key={o.key} className="needopt" onClick={() => answer(o)}>
+                    <b>{o.key}</b> {o.label}
+                  </button>
+                ))}
+                <button className="needfocus" onClick={() => h.runAction('focus', s)}>Open terminal ↗</button>
+              </div>}
+        </div>
+      )}
       {open && (
         <div className="mdetail">
           {s.current_task && <div style={{ marginBottom: 12 }}><b>Task:</b> {s.current_task}</div>}

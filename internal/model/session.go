@@ -31,6 +31,24 @@ type Session struct {
 	// Working is true when the session is actively processing right now,
 	// inferred from very recent transcript writes (running sessions only).
 	Working bool `json:"working"`
+
+	// Waiting is true when the session is blocked on a permission/confirmation
+	// prompt in its terminal; Prompt carries the question + choices when parsed.
+	Waiting bool    `json:"waiting"`
+	Prompt  *Prompt `json:"prompt,omitempty"`
+}
+
+// PromptOption is one selectable choice in a terminal prompt. Key is the key to
+// send to pick it (e.g. "1"); Label is the human text (e.g. "Yes").
+type PromptOption struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+}
+
+// Prompt is a permission/confirmation question a session is waiting on.
+type Prompt struct {
+	Question string         `json:"question"`
+	Options  []PromptOption `json:"options"`
 }
 
 // Day is one bucket of the activity heatmap.

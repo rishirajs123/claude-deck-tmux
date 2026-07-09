@@ -181,6 +181,90 @@ end run`
 	return nil
 }
 
+// RestartWithFlags exits the running claude session in cwd and, in the same
+// iTerm2 tab, resumes the same session id with extra flags appended (e.g.
+// --dangerously-skip-permissions). bypass mode can only be set at startup, so
+// enabling it means a restart-in-place.
+func RestartWithFlags(cwd, id, flags string) error {
+	tty := live.TtyForCwd(cwd)
+	if tty == "" {
+		return fmt.Errorf("no running session in %s", cwd)
+	}
+	resume := "claude --resume " + shQuote(id)
+	if flags != "" {
+		resume += " " + flags
+	}
+	script := `on run argv
+  set theTty to item 1 of argv
+  set theCmd to item 2 of argv
+  tell application "iTerm2"
+    repeat with w in windows
+      repeat with t in tabs of w
+        repeat with s in sessions of t
+          if tty of s is theTty then
+            tell s to write text "/exit"
+            delay 2
+            tell s to write text theCmd
+            return "ok"
+          end if
+        end repeat
+      end repeat
+    end repeat
+  end tell
+  return "notfound"
+end run`
+	out, err := osaArgs(script, tty, resume)
+	if err != nil {
+		return err
+	}
+	if out == "notfound" {
+		return fmt.Errorf("session tty %s not found", tty)
+	}
+	return nil
+}
+
+// ReadTails returns the last ~2500 chars of the visible buffer for each of the
+// given ttys (keyed by tty), in a single osascript call. Used to detect when a
+// session is sitting on a permission prompt. Best-effort: missing ttys are omitted.
+func ReadTails(ttys []string) map[string]string {
+	res := map[string]string{}
+	if len(ttys) == 0 {
+		return res
+	}
+	script := `on run argv
+  set rs to (ASCII character 30)
+  set us to (ASCII character 31)
+  set out to ""
+  tell application "iTerm2"
+    repeat with w in windows
+      repeat with t in tabs of w
+        repeat with s in sessions of t
+          set tt to (tty of s)
+          if tt is in argv then
+            try
+              set c to (get contents of s)
+              if (count of c) > 2500 then set c to text -2500 thru -1 of c
+              set out to out & rs & tt & us & c
+            end try
+          end if
+        end repeat
+      end repeat
+    end repeat
+  end tell
+  return out
+end run`
+	out, err := osaArgs(script, ttys...)
+	if err != nil {
+		return res
+	}
+	for _, block := range strings.Split(out, "\x1e") {
+		if i := strings.IndexByte(block, '\x1f'); i >= 0 {
+			res[block[:i]] = block[i+1:]
+		}
+	}
+	return res
+}
+
 // Kill terminates the claude process(es) running in cwd.
 func Kill(cwd string) error {
 	pids := live.ClaudeProcs()[cwd]

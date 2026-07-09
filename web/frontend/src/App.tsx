@@ -113,6 +113,7 @@ export default function App() {
 
   const handlers: Handlers = { runAction, toggleFav, saveNote, killZombies, openCompose, openNew }
   const zombies = sessions.filter(isZombie).length
+  const waitingN = sessions.filter(s => s.waiting).length
 
   return (
     <div className="wrap">
@@ -128,6 +129,7 @@ export default function App() {
           <button className="iconbtn" onClick={() => setPaletteOpen(true)}>⌘K</button>
           <button className="iconbtn" onClick={() => setPaused(p => !p)}>{paused ? '▶' : '⏸'}</button>
           <button className="iconbtn" onClick={load}>⟳</button>
+          {waitingN > 0 && <span className="alert wait">⏳ {waitingN} waiting</span>}
           {zombies > 0 && <span className="alert">⚠ {zombies} idle</span>}
           <span className="clock">{clock || '—'}{paused ? ' · paused' : ''}</span>
         </div>

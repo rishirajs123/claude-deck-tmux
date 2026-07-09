@@ -26,6 +26,11 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
   }
   const copyResume = () => { setOpen(false); navigator.clipboard.writeText(`cd '${s.cwd}' && claude --resume '${s.id}'`) }
   const kill = () => { if (confirm('Kill this session? This terminates its claude process.')) { setOpen(false); h.runAction('kill', s) } }
+  const bypass = () => {
+    if (confirm('Enable skip-permissions for this session?\n\nIt exits and immediately resumes the same session with --dangerously-skip-permissions, which bypasses ALL permission prompts. Only do this for a session and directory you trust.')) {
+      setOpen(false); h.runAction('bypass', s)
+    }
+  }
 
   return (
     <div className={'rowactions' + (open ? ' open' : '')} ref={ref} onClick={stop}>
@@ -55,6 +60,7 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
               <div className="midiv">Session control</div>
               <button className="mi" onClick={() => send('/compact', 'Compact this session? It summarizes the conversation and drops detail.')}>«» Compact</button>
               <button className="mi" onClick={() => send('/clear', 'Clear this session? Starts fresh (recoverable via /resume).')}>⌫ Clear</button>
+              <button className="mi" onClick={bypass}>⚡ Skip-permissions (restart)</button>
               <button className="mi danger" onClick={kill}>✕ Kill session</button>
             </>
           )}

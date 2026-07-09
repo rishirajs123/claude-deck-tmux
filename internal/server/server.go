@@ -16,6 +16,7 @@ import (
 	"github.com/tachodril/claude-deck/internal/ingest"
 	"github.com/tachodril/claude-deck/internal/live"
 	"github.com/tachodril/claude-deck/internal/model"
+	"github.com/tachodril/claude-deck/internal/prompts"
 	"github.com/tachodril/claude-deck/internal/store"
 	"github.com/tachodril/claude-deck/internal/terminal"
 	"github.com/tachodril/claude-deck/web"
@@ -30,6 +31,9 @@ type Server struct {
 	envMu      sync.Mutex
 	env        environment.Stats
 	envAt      time.Time
+	promptsMu  sync.Mutex
+	waiting    map[string]*model.Prompt // cwd -> prompt the session is blocked on
+	lastReq    time.Time
 }
 
 func New(st *store.Store, claudeDir string) *Server {
@@ -56,7 +60,47 @@ func (s *Server) maybeReingest() {
 	}()
 }
 
+// watchPrompts periodically reads the terminal tail of each running session and
+// records which are blocked on a permission prompt. It only works while the
+// dashboard is open (a recent request), so it costs nothing when nobody watches.
+func (s *Server) watchPrompts() {
+	for {
+		time.Sleep(6 * time.Second)
+		s.mu.Lock()
+		active := !s.lastReq.IsZero() && time.Since(s.lastReq) < 20*time.Second
+		s.mu.Unlock()
+		if active {
+			s.scanPrompts()
+		}
+	}
+}
+
+func (s *Server) scanPrompts() {
+	running := live.RegistryCwds()
+	for cwd := range live.ClaudeProcs() {
+		running[cwd] = true
+	}
+	cwdByTty := map[string]string{}
+	ttys := make([]string, 0, len(running))
+	for cwd := range running {
+		if tty := live.TtyForCwd(cwd); tty != "" {
+			cwdByTty[tty] = cwd
+			ttys = append(ttys, tty)
+		}
+	}
+	found := map[string]*model.Prompt{}
+	for tty, tail := range terminal.ReadTails(ttys) {
+		if p := prompts.Detect(tail); p != nil {
+			found[cwdByTty[tty]] = p
+		}
+	}
+	s.promptsMu.Lock()
+	s.waiting = found
+	s.promptsMu.Unlock()
+}
+
 func (s *Server) Listen(addr string) error {
+	go s.watchPrompts()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/sessions", s.handleSessions)
 	mux.HandleFunc("/api/stats", s.handleStats)
@@ -73,6 +117,9 @@ func (s *Server) Listen(addr string) error {
 // claude process marks its most-recently-used session as "running".
 func (s *Server) withStatus() ([]model.Session, error) {
 	s.maybeReingest()
+	s.mu.Lock()
+	s.lastReq = time.Now()
+	s.mu.Unlock()
 	sessions, err := s.st.All()
 	if err != nil {
 		return nil, err
@@ -89,6 +136,9 @@ func (s *Server) withStatus() ([]model.Session, error) {
 		}
 	}
 	tpaths := transcriptPaths(s.claudeDir)
+	s.promptsMu.Lock()
+	waiting := s.waiting
+	s.promptsMu.Unlock()
 	usageCache := map[string][2]float64{}
 	for i := range sessions {
 		s := &sessions[i]
@@ -105,6 +155,11 @@ func (s *Server) withStatus() ([]model.Session, error) {
 				if fi, err := os.Stat(tpaths[s.ID]); err == nil {
 					s.Working = time.Since(fi.ModTime()) < workingWindow
 				}
+			}
+			if p := waiting[s.Cwd]; p != nil {
+				s.Waiting = true
+				s.Prompt = p
+				s.Working = false
 			}
 		} else {
 			s.Status = "ended"
@@ -291,6 +346,8 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 		err = terminal.SendText(req.Cwd, req.Text)
 	case "message":
 		err = terminal.SendMessage(req.Cwd, req.Text)
+	case "bypass":
+		err = terminal.RestartWithFlags(req.Cwd, req.ID, "--dangerously-skip-permissions")
 	default:
 		err = fmt.Errorf("unknown action %q", req.Action)
 	}
