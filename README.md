@@ -31,6 +31,14 @@ Run Claude Code enough and the sessions pile up — dozens of them, scattered ac
 - **Favorites ★, tags & notes**, group-by-project, and a **⌘K palette** to jump to any session instantly.
 - **Zombie sweep** — spot and bulk-kill sessions that are running but idle.
 
+## A closer look
+
+| Compose & send into a running session | Act on a session from its row |
+| :---: | :---: |
+| ![Compose & send](docs/compose.png) | ![Row actions](docs/actions.png) |
+| **Start a session in any directory** | **See how you use Claude Code** |
+| ![New session](docs/new-session.png) | ![Analytics](docs/analytics.png) |
+
 ## Quick start
 
 **Install (prebuilt binary):**
