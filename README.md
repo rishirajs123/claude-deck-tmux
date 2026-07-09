@@ -1,24 +1,33 @@
 # ClaudeDeck
 
-**Mission control for your Claude Code sessions.** A local web dashboard that tracks every Claude Code session — running or long-finished — on your Mac, with live status, resource usage, rich analytics, and one-click jump-to-terminal / resume.
+**Mission control for your Claude Code sessions.**
 
-> 100% local. No account, no cloud, no telemetry. It only reads files Claude Code already writes on your machine.
+One local dashboard for every Claude Code session on your Mac — live or long-finished. See what's running right now, jump back into any session, **drive a live session straight from your browser** — send it a prompt, switch its model, compact or kill it — and see how you actually use Claude Code.
+
+> 100% local. No account, no cloud, no telemetry. ClaudeDeck only reads the files Claude Code already writes on your machine.
 
 ![ClaudeDeck dashboard](docs/screenshot.png)
 
 ## Why
-If you run many Claude Code sessions across many directories, there's no way to see them all, remember what each was doing, find an old one, or jump back in. ClaudeDeck is the missing control plane: one screen for every session, past and present.
+Run Claude Code enough and the sessions pile up — dozens of them, scattered across dozens of directories. Which are still running? What was that one from Tuesday doing? Where did you leave off? There's no single place to look. ClaudeDeck is that place: one screen for every session, past and present — and a remote control for the live ones.
 
-## Features
-- **Every session, ever** — auto-ingested from `~/.claude`; zero setup.
-- **Live status** — which sessions are running *right now* (real process detection), which are idle "zombies", which ended.
-- **Live CPU / memory** per running session.
-- **Jump & resume** — click a running session to focus its iTerm2 tab; click a finished one to open a new tab and `claude --resume` it.
-- **Act on any running session** — right from its row: switch model, compact, clear, or kill it, without alt-tabbing to the terminal.
-- **Compose & send** — write or paste a long message (or a `/command`) in a real editor and send it straight into a running session; multi-line arrives as a single message.
-- **Analytics** — activity heatmap, top projects, model & token usage.
-- **Organize** — favorites ★, tags, notes, group-by-project, and a ⌘K palette to jump to any session.
-- **Zombie sweep** — flag and bulk-kill sessions that are running but idle.
+## What you can do
+
+**🛰 See everything, live**
+- **Every session, ever** — auto-ingested from `~/.claude`. Zero setup, nothing to configure.
+- **Live status** — which sessions are running *right now* (real process detection), which are idle, which ended — with **live CPU & memory** for each.
+
+**🎮 Drive a session from your browser**
+- **Compose & send** — write or paste a long prompt (or a `/command`) in a proper editor and fire it straight into a running session. Multi-line arrives as *one* message — far nicer than wrestling with it in the terminal.
+- **Act on a running session** — **switch its model**, **compact**, **clear**, or **kill** it, right from its row.
+- **Jump & resume** — one click to focus a running session's iTerm2 tab, or reopen a finished one with `claude --resume`.
+
+**📊 Understand your usage**
+- **Analytics** — an activity heatmap, top projects, and model & token usage. Spot your patterns at a glance.
+
+**🗂 Stay organized**
+- **Favorites ★, tags & notes**, group-by-project, and a **⌘K palette** to jump to any session instantly.
+- **Zombie sweep** — spot and bulk-kill sessions that are running but idle.
 
 ## Quick start
 
