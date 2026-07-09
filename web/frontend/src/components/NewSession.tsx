@@ -43,6 +43,7 @@ export default function NewSession({ sessions, onClose, onLaunch }: {
             <input ref={dirRef} list="cd-dirs" value={dir} onChange={e => setDir(e.target.value)}
               placeholder="~/path/to/project — type a path or pick a recent one" />
             <datalist id="cd-dirs">{dirs.map(d => <option key={d} value={d} />)}</datalist>
+            <div className="nshelp">Doesn't exist yet? ClaudeDeck creates it for you.</div>
           </div>
           <div className="nsfield">
             <label>First prompt <span className="opt">optional</span></label>

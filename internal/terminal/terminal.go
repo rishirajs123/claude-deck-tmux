@@ -66,7 +66,7 @@ func Resume(cwd, id string) error {
 // NewSession opens a new iTerm2 tab in dir and starts a fresh claude session.
 // A non-empty prompt is passed as claude's initial prompt (submitted on start).
 func NewSession(dir, prompt string) error {
-	d, err := expandDir(dir)
+	d, err := ensureDir(dir)
 	if err != nil {
 		return err
 	}
@@ -77,23 +77,31 @@ func NewSession(dir, prompt string) error {
 	return openTab(shellCmd(d, cmd))
 }
 
-func expandDir(p string) (string, error) {
+// ensureDir expands ~, requires an absolute path, and creates the directory
+// (mkdir -p) if it doesn't exist yet.
+func ensureDir(p string) (string, error) {
 	p = strings.TrimSpace(p)
 	if p == "" {
 		return "", fmt.Errorf("directory is required")
 	}
 	if p == "~" || strings.HasPrefix(p, "~/") {
-		home, err := os.UserHomeDir()
-		if err == nil {
+		if home, err := os.UserHomeDir(); err == nil {
 			p = filepath.Join(home, strings.TrimPrefix(p, "~"))
 		}
 	}
-	info, err := os.Stat(p)
-	if err != nil {
-		return "", fmt.Errorf("no such directory: %s", p)
+	if !filepath.IsAbs(p) {
+		return "", fmt.Errorf("use an absolute path or ~: %s", p)
 	}
-	if !info.IsDir() {
-		return "", fmt.Errorf("not a directory: %s", p)
+	if info, err := os.Stat(p); err == nil {
+		if !info.IsDir() {
+			return "", fmt.Errorf("not a directory: %s", p)
+		}
+		return p, nil
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("cannot access %s: %v", p, err)
+	}
+	if err := os.MkdirAll(p, 0o755); err != nil {
+		return "", fmt.Errorf("could not create %s: %v", p, err)
 	}
 	return p, nil
 }
