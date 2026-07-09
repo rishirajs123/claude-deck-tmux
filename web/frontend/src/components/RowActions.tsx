@@ -30,9 +30,12 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
   return (
     <div className={'rowactions' + (open ? ' open' : '')} ref={ref} onClick={stop}>
       {run
-        ? <button className="btn go" onClick={() => act('focus')}>▶ Focus</button>
+        ? <>
+            <button className="btn go" onClick={() => act('focus')}>▶ Focus</button>
+            <button className="btn cmp" title="Compose & send a message to this session" onClick={() => h.openCompose(s)}>✎ Compose</button>
+          </>
         : <button className="btn res" onClick={() => act('resume')}>↻ Resume</button>}
-      <button className="menutrig" title="Actions" onClick={() => setOpen(o => !o)}>⋯</button>
+      <button className="menutrig" title="More actions" onClick={() => setOpen(o => !o)}>⋯</button>
       {open && (
         <div className="menu">
           {run
