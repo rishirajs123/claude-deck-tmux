@@ -23,6 +23,8 @@ Drop that file into any project's `.claude/context/` and edit the `## Task` line
 ## Option B — auto-create it with a SessionStart hook
 Have Claude Code create the file automatically at the start of every session, so you only edit the one line.
 
+> **Quickest:** run [`examples/install-task-hook.sh`](../examples/install-task-hook.sh) — it does steps 1–2 below for you (idempotent, requires `jq`). Or do it manually:
+
 1. Save this as `~/.claude/hooks/current-task.sh` and `chmod +x` it:
 
 ```bash
