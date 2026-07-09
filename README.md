@@ -26,6 +26,7 @@ Run Claude Code enough and the sessions pile up — dozens of them, scattered ac
 
 **📊 Understand your usage**
 - **Analytics** — an activity heatmap, top projects, and model & token usage. Spot your patterns at a glance.
+- **Skills & subagents** — which skills you lean on and how often you run subagents, derived automatically from your session files. No hooks, no setup.
 
 **🗂 Stay organized**
 - **Favorites ★, tags & notes**, group-by-project, and a **⌘K palette** to jump to any session instantly.

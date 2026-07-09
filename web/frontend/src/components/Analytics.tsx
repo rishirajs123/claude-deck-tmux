@@ -1,11 +1,21 @@
-import { useMemo, useState } from 'react'
-import type { Analytics as AnalyticsData } from '../types'
-import { fmtN } from '../format'
+import { useEffect, useMemo, useState } from 'react'
+import type { Analytics as AnalyticsData, EnvStats } from '../types'
+import { fmtN, ago } from '../format'
+import { getEnvironment } from '../api'
 
 const fmtDay = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 
 export default function Analytics({ data }: { data: AnalyticsData | null }) {
   const [hc, setHc] = useState<{ day: string; n: number; left: number; top: number } | null>(null)
+  const [env, setEnv] = useState<EnvStats | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    const load = () => getEnvironment().then(e => alive && setEnv(e)).catch(() => {})
+    load()
+    const t = setInterval(load, 30000)
+    return () => { alive = false; clearInterval(t) }
+  }, [])
 
   const heat = useMemo(() => {
     if (!data) return { cells: [] as { key: string; n: number; lv: number }[], total: 0 }
@@ -29,6 +39,10 @@ export default function Analytics({ data }: { data: AnalyticsData | null }) {
   const pmax = Math.max(1, ...projs.map(p => p.prompts))
   const models = data.models || []
   const mmax = Math.max(1, ...models.map(m => m.tokens))
+  const skills = env?.skills || []
+  const smax = Math.max(1, ...skills.map(s => s.count))
+  const agentsByProj = env?.agent_by_project || []
+  const amax = Math.max(1, ...agentsByProj.map(a => a.count))
 
   return (
     <section>
@@ -79,6 +93,39 @@ export default function Analytics({ data }: { data: AnalyticsData | null }) {
               </div>
             )) : <div className="empty">no data</div>}
           </div>
+        </div>
+      </div>
+
+      <div className="cols">
+        <div className="panel">
+          <h3>Skills used</h3>
+          <div className="subhead">Read from your session transcripts — no setup.</div>
+          {skills.length ? (
+            <div className="bars">
+              {skills.map(s => (
+                <div className="row" key={s.name}>
+                  <span className="lab">{s.name}</span>
+                  <div className="track"><div className="fill" style={{ width: Math.max(2, 100 * s.count / smax) + '%' }} /></div>
+                  <span className="val">{s.count}× · {ago(s.last_used)}</span>
+                </div>
+              ))}
+            </div>
+          ) : <div className="empty">No skill runs found yet.</div>}
+        </div>
+        <div className="panel">
+          <h3>Subagent runs</h3>
+          <div className="subhead">{env ? `${env.agent_runs} runs across ${env.agent_projects} project${env.agent_projects === 1 ? '' : 's'}` : ' '}</div>
+          {agentsByProj.length ? (
+            <div className="bars">
+              {agentsByProj.map(a => (
+                <div className="row" key={a.key}>
+                  <span className="lab">{a.key}</span>
+                  <div className="track"><div className="fill g" style={{ width: Math.max(2, 100 * a.count / amax) + '%' }} /></div>
+                  <span className="val">{a.count}</span>
+                </div>
+              ))}
+            </div>
+          ) : <div className="empty">No subagents launched yet.</div>}
         </div>
       </div>
     </section>

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tachodril/claude-deck/internal/environment"
 	"github.com/tachodril/claude-deck/internal/ingest"
 	"github.com/tachodril/claude-deck/internal/live"
 	"github.com/tachodril/claude-deck/internal/model"
@@ -26,6 +27,9 @@ type Server struct {
 	mu         sync.Mutex
 	lastIngest time.Time
 	ingesting  bool
+	envMu      sync.Mutex
+	env        environment.Stats
+	envAt      time.Time
 }
 
 func New(st *store.Store, claudeDir string) *Server {
@@ -57,6 +61,7 @@ func (s *Server) Listen(addr string) error {
 	mux.HandleFunc("/api/sessions", s.handleSessions)
 	mux.HandleFunc("/api/stats", s.handleStats)
 	mux.HandleFunc("/api/analytics", s.handleAnalytics)
+	mux.HandleFunc("/api/environment", s.handleEnvironment)
 	mux.HandleFunc("/api/meta", s.handleMeta)
 	mux.HandleFunc("/api/action", s.handleAction)
 	sub, _ := fs.Sub(web.FS, "static")
@@ -224,6 +229,18 @@ func (s *Server) handleAnalytics(w http.ResponseWriter, r *http.Request) {
 		"topProjects": topN(byProj, false, 12),
 		"models":      topN(byModel, true, 0),
 	})
+}
+
+// handleEnvironment serves skills + subagent usage, scanned from ~/.claude and
+// cached for 30s (the scan reads every transcript, so we don't do it per poll).
+func (s *Server) handleEnvironment(w http.ResponseWriter, r *http.Request) {
+	s.envMu.Lock()
+	defer s.envMu.Unlock()
+	if s.envAt.IsZero() || time.Since(s.envAt) > 30*time.Second {
+		s.env = environment.Scan(s.claudeDir)
+		s.envAt = time.Now()
+	}
+	writeJSON(w, s.env)
 }
 
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {

@@ -35,4 +35,16 @@ export interface Agg { key: string; sessions: number; prompts: number; tokens: n
 export interface Day { day: string; prompts: number }
 export interface Analytics { daily: Day[]; topProjects: Agg[]; models: Agg[] }
 
+export interface SkillStat { name: string; count: number; last_used: number }
+export interface EnvCount { key: string; count: number }
+export interface EnvStats {
+  skills: SkillStat[]
+  skill_runs: number
+  skill_count: number
+  agent_runs: number
+  agent_projects: number
+  agent_by_project: EnvCount[]
+  agent_daily: EnvCount[]
+}
+
 export type Action = 'focus' | 'resume' | 'new' | 'kill' | 'reveal' | 'send' | 'message'

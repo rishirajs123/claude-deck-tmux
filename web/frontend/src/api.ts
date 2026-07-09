@@ -1,10 +1,11 @@
-import type { Session, Stats, Analytics, Action } from './types'
+import type { Session, Stats, Analytics, EnvStats, Action } from './types'
 
 const j = (r: Response) => r.json()
 
 export const getSessions = (): Promise<Session[]> => fetch('/api/sessions').then(j)
 export const getStats = (): Promise<Stats> => fetch('/api/stats').then(j)
 export const getAnalytics = (): Promise<Analytics> => fetch('/api/analytics').then(j)
+export const getEnvironment = (): Promise<EnvStats> => fetch('/api/environment').then(j)
 
 export function doAction(action: Action, s: Session, text?: string): Promise<{ ok: boolean; error?: string }> {
   return fetch('/api/action', {
