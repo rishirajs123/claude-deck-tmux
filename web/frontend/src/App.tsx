@@ -6,12 +6,14 @@ import Hero from './components/Hero'
 import Sessions from './components/Sessions'
 import Analytics from './components/Analytics'
 import Palette from './components/Palette'
+import Composer from './components/Composer'
 
 export interface Handlers {
   runAction: (a: Action, s: Session, text?: string) => Promise<void>
   toggleFav: (s: Session) => Promise<void>
   saveNote: (s: Session, tags: string, notes: string) => Promise<void>
   killZombies: () => Promise<void>
+  openCompose: (s: Session) => void
 }
 
 export default function App() {
@@ -23,6 +25,7 @@ export default function App() {
   const [clock, setClock] = useState('')
   const [toast, setToast] = useState<{ msg: string; kind: string } | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [compose, setCompose] = useState<Session | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const showToast = useCallback((msg: string, kind = '') => {
@@ -59,7 +62,7 @@ export default function App() {
   }, [])
 
   const runAction = useCallback(async (action: Action, s: Session, text?: string) => {
-    const label = action === 'send' ? (text || 'command') : action
+    const label = action === 'send' ? (text || 'command') : action === 'message' ? 'message' : action
     showToast(label + '…')
     try {
       const r = await doAction(action, s, text)
@@ -91,7 +94,9 @@ export default function App() {
     setTimeout(load, 600)
   }, [sessions, load, showToast])
 
-  const handlers: Handlers = { runAction, toggleFav, saveNote, killZombies }
+  const openCompose = useCallback((s: Session) => setCompose(s), [])
+
+  const handlers: Handlers = { runAction, toggleFav, saveNote, killZombies, openCompose }
   const zombies = sessions.filter(isZombie).length
 
   return (
@@ -119,6 +124,7 @@ export default function App() {
         : <Analytics data={analytics} />}
 
       {paletteOpen && <Palette sessions={sessions} runAction={runAction} onClose={() => setPaletteOpen(false)} />}
+      {compose && <Composer session={compose} runAction={runAction} onClose={() => setCompose(null)} />}
       {toast && <div className={'toast ' + toast.kind}>{toast.msg}</div>}
     </div>
   )

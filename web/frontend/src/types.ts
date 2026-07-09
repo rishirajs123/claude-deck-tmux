@@ -34,4 +34,4 @@ export interface Agg { key: string; sessions: number; prompts: number; tokens: n
 export interface Day { day: string; prompts: number }
 export interface Analytics { daily: Day[]; topProjects: Agg[]; models: Agg[] }
 
-export type Action = 'focus' | 'resume' | 'new' | 'kill' | 'reveal' | 'send'
+export type Action = 'focus' | 'resume' | 'new' | 'kill' | 'reveal' | 'send' | 'message'

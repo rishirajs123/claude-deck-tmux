@@ -245,6 +245,8 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 		err = terminal.Reveal(req.Cwd)
 	case "send":
 		err = terminal.SendText(req.Cwd, req.Text)
+	case "message":
+		err = terminal.SendMessage(req.Cwd, req.Text)
 	default:
 		err = fmt.Errorf("unknown action %q", req.Action)
 	}

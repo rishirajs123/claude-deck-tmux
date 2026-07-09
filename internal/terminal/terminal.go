@@ -11,8 +11,10 @@ import (
 	"github.com/tachodril/claude-deck/internal/live"
 )
 
-func osa(script string) (string, error) {
-	out, err := exec.Command("osascript", "-e", script).CombinedOutput()
+func osa(script string) (string, error) { return osaArgs(script) }
+
+func osaArgs(script string, args ...string) (string, error) {
+	out, err := exec.Command("osascript", append([]string{"-e", script}, args...)...).CombinedOutput()
 	s := strings.TrimSpace(string(out))
 	if err != nil {
 		return s, fmt.Errorf("osascript: %v: %s", err, s)
@@ -90,6 +92,45 @@ func SendText(cwd, text string) error {
   return "notfound"
 end tell`, tty, esc)
 	out, err := osa(script)
+	if err != nil {
+		return err
+	}
+	if out == "notfound" {
+		return fmt.Errorf("session tty %s not found", tty)
+	}
+	return nil
+}
+
+// SendMessage pastes text into the running session using bracketed paste (so a
+// multi-line message stays a single prompt), then submits it with a newline.
+// Text is passed as an argv item, so no AppleScript-string escaping is needed.
+func SendMessage(cwd, text string) error {
+	if strings.TrimSpace(text) == "" {
+		return fmt.Errorf("empty message")
+	}
+	tty := live.TtyForCwd(cwd)
+	if tty == "" {
+		return fmt.Errorf("no running session in %s", cwd)
+	}
+	script := `on run argv
+  set theText to item 1 of argv
+  set theTty to item 2 of argv
+  tell application "iTerm2"
+    repeat with w in windows
+      repeat with t in tabs of w
+        repeat with s in sessions of t
+          if tty of s is theTty then
+            tell s to write text ((ASCII character 27) & "[200~" & theText & (ASCII character 27) & "[201~") newline no
+            tell s to write text ""
+            return "ok"
+          end if
+        end repeat
+      end repeat
+    end repeat
+  end tell
+  return "notfound"
+end run`
+	out, err := osaArgs(script, text, tty)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,6 @@ const MODELS: [string, string][] = [['opus', 'Opus'], ['sonnet', 'Sonnet'], ['ha
 
 export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
   const [open, setOpen] = useState(false)
-  const [cmd, setCmd] = useState('')
   const ref = useRef<HTMLDivElement>(null)
   const run = s.status === 'running'
   const stop = (e: React.MouseEvent) => e.stopPropagation()
@@ -43,6 +42,7 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
           <button className="mi" onClick={copyResume}>⧉ Copy resume cmd</button>
           {run && (
             <>
+              <button className="mi" onClick={() => { setOpen(false); h.openCompose(s) }}>⌨ Compose &amp; send…</button>
               <div className="midiv">Switch model</div>
               <div className="mimodels">
                 {MODELS.map(([id, label]) => (
@@ -52,11 +52,6 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
               <div className="midiv">Session control</div>
               <button className="mi" onClick={() => send('/compact', 'Compact this session? It summarizes the conversation and drops detail.')}>«» Compact</button>
               <button className="mi" onClick={() => send('/clear', 'Clear this session? Starts fresh (recoverable via /resume).')}>⌫ Clear</button>
-              <div className="misend">
-                <input placeholder="send /command or text…" value={cmd} onClick={stop}
-                  onChange={e => setCmd(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && cmd.trim()) { send(cmd.trim()); setCmd('') } }} />
-              </div>
               <button className="mi danger" onClick={kill}>✕ Kill session</button>
             </>
           )}
