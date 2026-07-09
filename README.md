@@ -14,6 +14,8 @@ If you run many Claude Code sessions across many directories, there's no way to 
 - **Live status** — which sessions are running *right now* (real process detection), which are idle "zombies", which ended.
 - **Live CPU / memory** per running session.
 - **Jump & resume** — click a running session to focus its iTerm2 tab; click a finished one to open a new tab and `claude --resume` it.
+- **Act on any running session** — right from its row: switch model, compact, clear, or kill it, without alt-tabbing to the terminal.
+- **Compose & send** — write or paste a long message (or a `/command`) in a real editor and send it straight into a running session; multi-line arrives as a single message.
 - **Analytics** — activity heatmap, top projects, model & token usage.
 - **Organize** — favorites ★, tags, notes, group-by-project, and a ⌘K palette to jump to any session.
 - **Zombie sweep** — flag and bulk-kill sessions that are running but idle.
