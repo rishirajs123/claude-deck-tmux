@@ -62,8 +62,7 @@ export default function NewSession({ sessions, onClose, onLaunch }: {
             <div className="nshelp">
               {perm === 'skip' ? 'Skips all prompts (--dangerously-skip-permissions).'
                 : perm === 'ask' ? 'Forces permission prompts on.'
-                : "Keeps the session's own mode (Claude's default for a new one)."}
-              {' '}Also applies when you resume.
+                : "Uses Claude's default."}
             </div>
           </div>
         </div>

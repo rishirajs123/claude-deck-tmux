@@ -12,11 +12,11 @@ export const getEnvironment = (): Promise<EnvStats> => fetch('/api/environment')
 // flag, so a resumed session keeps its own mode and a new one uses Claude's.
 export const getPerm = (): string => localStorage.getItem('cd_perm') || 'auto'
 
-export function doAction(action: Action, s: Session, text?: string): Promise<{ ok: boolean; error?: string }> {
+export function doAction(action: Action, s: Session, text?: string, perm?: string): Promise<{ ok: boolean; error?: string }> {
   return fetch('/api/action', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action, id: s.id, cwd: s.cwd, text: text || '', perm: getPerm() }),
+    body: JSON.stringify({ action, id: s.id, cwd: s.cwd, text: text || '', perm: perm ?? getPerm() }),
   }).then(j)
 }
 

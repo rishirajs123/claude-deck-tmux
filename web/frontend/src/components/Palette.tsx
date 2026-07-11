@@ -4,7 +4,7 @@ import { ago } from '../format'
 
 export default function Palette({ sessions, runAction, onClose }: {
   sessions: Session[]
-  runAction: (a: Action, s: Session) => Promise<void>
+  runAction: (a: Action, s: Session, text?: string, perm?: string) => Promise<void>
   onClose: () => void
 }) {
   const [q, setQ] = useState('')
@@ -25,7 +25,8 @@ export default function Palette({ sessions, runAction, onClose }: {
   const run = (s: Session | undefined) => {
     if (!s) return
     onClose()
-    runAction(s.status === 'running' ? 'focus' : 'resume', s)
+    if (s.status === 'running') runAction('focus', s)
+    else runAction('resume', s, undefined, 'auto')
   }
 
   const onKey = (e: React.KeyboardEvent) => {

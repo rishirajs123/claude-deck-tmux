@@ -10,7 +10,7 @@ import Composer from './components/Composer'
 import NewSession from './components/NewSession'
 
 export interface Handlers {
-  runAction: (a: Action, s: Session, text?: string) => Promise<void>
+  runAction: (a: Action, s: Session, text?: string, perm?: string) => Promise<void>
   toggleFav: (s: Session) => Promise<void>
   saveNote: (s: Session, tags: string, notes: string) => Promise<void>
   killZombies: () => Promise<void>
@@ -64,11 +64,11 @@ export default function App() {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  const runAction = useCallback(async (action: Action, s: Session, text?: string) => {
+  const runAction = useCallback(async (action: Action, s: Session, text?: string, perm?: string) => {
     const label = action === 'send' ? (text || 'command') : action === 'message' ? 'message' : action
     showToast(label + '…')
     try {
-      const r = await doAction(action, s, text)
+      const r = await doAction(action, s, text, perm)
       showToast(r.ok ? label + ' ✓' : label + ' failed: ' + r.error, r.ok ? 'ok' : 'err')
     } catch {
       showToast(label + ' failed', 'err')

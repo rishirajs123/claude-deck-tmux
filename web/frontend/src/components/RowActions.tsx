@@ -6,15 +6,12 @@ const MODELS: [string, string][] = [['opus', 'Opus'], ['sonnet', 'Sonnet'], ['ha
 
 export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
   const [open, setOpen] = useState(false)
-  const [perm, setPerm] = useState(() => localStorage.getItem('cd_perm') || 'auto')
   const ref = useRef<HTMLDivElement>(null)
   const run = s.status === 'running'
   const stop = (e: React.MouseEvent) => e.stopPropagation()
-  const setPermPref = (p: string) => { setPerm(p); localStorage.setItem('cd_perm', p) }
 
   useEffect(() => {
     if (!open) return
-    setPerm(localStorage.getItem('cd_perm') || 'auto') // re-sync in case it changed elsewhere
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
     const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', onDoc)
@@ -27,11 +24,13 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
     if (confirmMsg && !confirm(confirmMsg)) return
     setOpen(false); h.runAction('send', s, text)
   }
-  const copyResume = () => {
-    setOpen(false)
-    const flag = perm === 'skip' ? ' --dangerously-skip-permissions' : perm === 'ask' ? ' --permission-mode default' : ''
-    navigator.clipboard.writeText(`cd '${s.cwd}' && claude --resume '${s.id}'${flag}`)
+  const resume = (perm: string) => { setOpen(false); h.runAction('resume', s, undefined, perm) }
+  const resumeSkip = () => {
+    if (confirm('Resume with --dangerously-skip-permissions?\n\nThis bypasses ALL permission prompts. Only do this for a session and directory you trust.')) {
+      setOpen(false); h.runAction('resume', s, undefined, 'skip')
+    }
   }
+  const copyResume = () => { setOpen(false); navigator.clipboard.writeText(`cd '${s.cwd}' && claude --resume '${s.id}'`) }
   const kill = () => { if (confirm('Kill this session? This terminates its claude process.')) { setOpen(false); h.runAction('kill', s) } }
   const bypass = () => {
     if (confirm('Enable skip-permissions for this session?\n\nIt exits and immediately resumes the same session with --dangerously-skip-permissions, which bypasses ALL permission prompts. Only do this for a session and directory you trust.')) {
@@ -51,23 +50,20 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
             <button className="btn go" onClick={() => act('focus')}>▶ Focus</button>
             <button className="btn cmp" title="Compose & send a message to this session" onClick={() => h.openCompose(s)}>✎ Compose</button>
           </>
-        : <button className="btn res" onClick={() => act('resume')}>↻ Resume</button>}
+        : <button className="btn res" onClick={() => resume('auto')}>↻ Resume</button>}
       <button className="menutrig" title="More actions" onClick={() => setOpen(o => !o)}>⋯</button>
       {open && (
         <div className="menu">
           {run
             ? <button className="mi" onClick={() => act('focus')}>▶ Focus tab</button>
-            : <button className="mi" onClick={() => act('resume')}>↻ Resume session</button>}
-          {!run && (
-            <>
-              <div className="midiv">Permissions on resume</div>
-              <div className="mimodels">
-                <button className={'permchip' + (perm === 'auto' ? ' on' : '')} onClick={() => setPermPref('auto')} title="Keep the session's own mode">Auto</button>
-                <button className={'permchip' + (perm === 'ask' ? ' on' : '')} onClick={() => setPermPref('ask')} title="Force permission prompts on">Ask</button>
-                <button className={'permchip skip' + (perm === 'skip' ? ' on' : '')} onClick={() => setPermPref('skip')} title="Skip all prompts">Skip</button>
-              </div>
-            </>
-          )}
+            : <>
+                <div className="midiv">Resume with</div>
+                <div className="mimodels">
+                  <button className="permchip" onClick={() => resume('auto')} title="Keep the session's own mode">Auto</button>
+                  <button className="permchip" onClick={() => resume('ask')} title="Force permission prompts on">Ask</button>
+                  <button className="permchip skip" onClick={resumeSkip} title="Skip all prompts (confirms first)">Skip</button>
+                </div>
+              </>}
           <button className="mi" onClick={() => act('reveal')}>📁 Reveal in Finder</button>
           <button className="mi" onClick={copyResume}>⧉ Copy resume cmd</button>
           {run && (
