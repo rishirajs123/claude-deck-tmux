@@ -109,7 +109,17 @@ func (s *Server) Listen(addr string) error {
 	mux.HandleFunc("/api/meta", s.handleMeta)
 	mux.HandleFunc("/api/action", s.handleAction)
 	sub, _ := fs.Sub(web.FS, "static")
-	mux.Handle("/", http.FileServer(http.FS(sub)))
+	fileServer := http.FileServer(http.FS(sub))
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Hashed assets are immutable; never cache index.html so a rebuilt UI is
+		// picked up on a normal reload (no more "hard-refresh to see changes").
+		if strings.Contains(r.URL.Path, "/assets/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			w.Header().Set("Cache-Control", "no-cache")
+		}
+		fileServer.ServeHTTP(w, r)
+	}))
 	return http.ListenAndServe(addr, mux)
 }
 
