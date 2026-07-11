@@ -7,9 +7,10 @@ export const getStats = (): Promise<Stats> => fetch('/api/stats').then(j)
 export const getAnalytics = (): Promise<Analytics> => fetch('/api/analytics').then(j)
 export const getEnvironment = (): Promise<EnvStats> => fetch('/api/environment').then(j)
 
-// getPerm returns the remembered launch-permission choice ('ask' | 'skip'),
-// applied when starting or resuming a session. Defaults to 'ask' (prompts on).
-export const getPerm = (): string => localStorage.getItem('cd_perm') || 'ask'
+// getPerm returns the remembered launch-permission choice ('auto' | 'ask' |
+// 'skip'), applied when starting or resuming a session. Default 'auto' sends no
+// flag, so a resumed session keeps its own mode and a new one uses Claude's.
+export const getPerm = (): string => localStorage.getItem('cd_perm') || 'auto'
 
 export function doAction(action: Action, s: Session, text?: string): Promise<{ ok: boolean; error?: string }> {
   return fetch('/api/action', {

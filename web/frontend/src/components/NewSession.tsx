@@ -8,7 +8,7 @@ export default function NewSession({ sessions, onClose, onLaunch }: {
 }) {
   const [dir, setDir] = useState('')
   const [prompt, setPrompt] = useState('')
-  const [perm, setPerm] = useState(() => localStorage.getItem('cd_perm') || 'ask')
+  const [perm, setPerm] = useState(() => localStorage.getItem('cd_perm') || 'auto')
   const dirRef = useRef<HTMLInputElement>(null)
   const choosePerm = (p: string) => { setPerm(p); localStorage.setItem('cd_perm', p) }
 
@@ -55,12 +55,16 @@ export default function NewSession({ sessions, onClose, onLaunch }: {
           <div className="nsfield">
             <label>Permissions</label>
             <div className="permseg">
-              <button className={perm === 'ask' ? 'on' : ''} onClick={() => choosePerm('ask')}>Ask each time</button>
-              <button className={perm === 'skip' ? 'on' : ''} onClick={() => choosePerm('skip')}>Skip prompts</button>
+              <button className={perm === 'auto' ? 'on' : ''} onClick={() => choosePerm('auto')}>Auto</button>
+              <button className={perm === 'ask' ? 'on' : ''} onClick={() => choosePerm('ask')}>Ask</button>
+              <button className={'skip' + (perm === 'skip' ? ' on' : '')} onClick={() => choosePerm('skip')}>Skip</button>
             </div>
-            <div className="nshelp">{perm === 'skip'
-              ? 'Runs with --dangerously-skip-permissions. Also used when you resume a session.'
-              : 'Normal permission prompts. Also used when you resume a session.'}</div>
+            <div className="nshelp">
+              {perm === 'skip' ? 'Skips all prompts (--dangerously-skip-permissions).'
+                : perm === 'ask' ? 'Forces permission prompts on.'
+                : "Keeps the session's own mode (Claude's default for a new one)."}
+              {' '}Also applies when you resume.
+            </div>
           </div>
         </div>
         <div className="cmpfoot">

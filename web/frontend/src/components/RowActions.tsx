@@ -6,7 +6,7 @@ const MODELS: [string, string][] = [['opus', 'Opus'], ['sonnet', 'Sonnet'], ['ha
 
 export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
   const [open, setOpen] = useState(false)
-  const [perm, setPerm] = useState(() => localStorage.getItem('cd_perm') || 'ask')
+  const [perm, setPerm] = useState(() => localStorage.getItem('cd_perm') || 'auto')
   const ref = useRef<HTMLDivElement>(null)
   const run = s.status === 'running'
   const stop = (e: React.MouseEvent) => e.stopPropagation()
@@ -14,7 +14,7 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
 
   useEffect(() => {
     if (!open) return
-    setPerm(localStorage.getItem('cd_perm') || 'ask') // re-sync in case it changed elsewhere
+    setPerm(localStorage.getItem('cd_perm') || 'auto') // re-sync in case it changed elsewhere
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
     const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', onDoc)
@@ -62,8 +62,9 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
             <>
               <div className="midiv">Permissions on resume</div>
               <div className="mimodels">
-                <button className={'permchip' + (perm === 'ask' ? ' on' : '')} onClick={() => setPermPref('ask')}>Ask</button>
-                <button className={'permchip skip' + (perm === 'skip' ? ' on' : '')} onClick={() => setPermPref('skip')}>Skip</button>
+                <button className={'permchip' + (perm === 'auto' ? ' on' : '')} onClick={() => setPermPref('auto')} title="Keep the session's own mode">Auto</button>
+                <button className={'permchip' + (perm === 'ask' ? ' on' : '')} onClick={() => setPermPref('ask')} title="Force permission prompts on">Ask</button>
+                <button className={'permchip skip' + (perm === 'skip' ? ' on' : '')} onClick={() => setPermPref('skip')} title="Skip all prompts">Skip</button>
               </div>
             </>
           )}
