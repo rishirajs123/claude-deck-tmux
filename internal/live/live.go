@@ -1,38 +1,39 @@
 package live
 
 import (
-	"encoding/json"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // ClaudeProcs maps each working directory to the pids of the live `claude`
-// processes running in it. Child processes inherit the session cwd. Excludes
-// the codebase-memory-mcp and claude-deck binaries.
+// processes running in it. Child processes inherit the session cwd. It ignores
+// stopped/suspended processes (a Ctrl-Z'd `claude` lingers for days but is not a
+// live session), the Claude desktop app, and the codebase-memory / claude-deck
+// binaries.
 func ClaudeProcs() map[string][]string {
 	m := map[string][]string{}
-	out, err := exec.Command("pgrep", "-f", "claude").Output()
+	// Enumerate every process — `pgrep -f claude` unreliably misses live sessions.
+	out, err := exec.Command("ps", "-Ao", "pid=,stat=,command=").Output()
 	if err != nil {
 		return m
 	}
-	for _, pid := range strings.Fields(string(out)) {
-		cmd, _ := exec.Command("ps", "-o", "command=", "-p", pid).Output()
-		c := string(cmd)
-		if strings.Contains(c, "codebase-memory") || strings.Contains(c, "claude-deck") {
+	for _, line := range strings.Split(string(out), "\n") {
+		f := strings.Fields(line)
+		if len(f) < 3 || !strings.Contains(line, "claude") {
 			continue
 		}
-		lo, err := exec.Command("lsof", "-a", "-p", pid, "-d", "cwd", "-Fn").Output()
-		if err != nil {
+		if strings.HasPrefix(f[1], "T") { // stopped/suspended: a Ctrl-Z'd claude
+			continue // lingers for days but is not a live session
+		}
+		if strings.Contains(line, "codebase-memory") || strings.Contains(line, "claude-deck") ||
+			strings.Contains(line, "Applications/Claude.app") || strings.Contains(line, "Claude Helper") {
 			continue
 		}
-		for _, line := range strings.Split(string(lo), "\n") {
-			if strings.HasPrefix(line, "n/") {
-				cwd := strings.TrimPrefix(line, "n")
-				m[cwd] = append(m[cwd], pid)
+		lo, _ := exec.Command("lsof", "-a", "-p", f[0], "-d", "cwd", "-Fn").Output()
+		for _, l := range strings.Split(string(lo), "\n") {
+			if strings.HasPrefix(l, "n/") {
+				m[strings.TrimPrefix(l, "n")] = append(m[strings.TrimPrefix(l, "n")], f[0])
 			}
 		}
 	}
@@ -55,52 +56,6 @@ func TtyForCwd(cwd string) string {
 	return ""
 }
 
-// RunningCwds returns the set of directories with a live session: claude
-// processes (via ClaudeProcs) unioned with registry entries touched in the last
-// 15 min (catches this session, which appears only as transient shell wrappers).
-func RunningCwds() map[string]bool {
-	set := RegistryCwds()
-	for cwd := range ClaudeProcs() {
-		set[cwd] = true
-	}
-	return set
-}
-
-// RegistryCwds returns cwds of session-registry entries touched in the last 15 min.
-func RegistryCwds() map[string]bool {
-	set := map[string]bool{}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return set
-	}
-	dir := filepath.Join(home, ".claude", "session-registry")
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return set
-	}
-	for _, e := range entries {
-		if !strings.HasSuffix(e.Name(), ".json") {
-			continue
-		}
-		info, err := e.Info()
-		if err != nil || time.Since(info.ModTime()) > 15*time.Minute {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
-		if err != nil {
-			continue
-		}
-		var r struct {
-			Cwd string `json:"cwd"`
-		}
-		if json.Unmarshal(data, &r) == nil && r.Cwd != "" {
-			set[r.Cwd] = true
-		}
-	}
-	return set
-}
-
-// UsageForPids sums %CPU and resident memory (MB) across the given pids.
 // Bypassed reports whether any of the pids was launched with permission checks
 // bypassed (--dangerously-skip-permissions or --permission-mode bypassPermissions).
 // bypass is a startup-only mode, so the process args are authoritative.
@@ -116,6 +71,7 @@ func Bypassed(pids []string) bool {
 	return strings.Contains(s, "--dangerously-skip-permissions") || strings.Contains(s, "bypassPermissions")
 }
 
+// UsageForPids sums %CPU and resident memory (MB) across the given pids.
 func UsageForPids(pids []string) (cpu, memMB float64) {
 	if len(pids) == 0 {
 		return 0, 0

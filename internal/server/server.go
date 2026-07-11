@@ -76,7 +76,7 @@ func (s *Server) watchPrompts() {
 }
 
 func (s *Server) scanPrompts() {
-	running := live.RegistryCwds()
+	running := map[string]bool{}
 	for cwd := range live.ClaudeProcs() {
 		running[cwd] = true
 	}
@@ -125,7 +125,7 @@ func (s *Server) withStatus() ([]model.Session, error) {
 		return nil, err
 	}
 	procs := live.ClaudeProcs()
-	running := live.RegistryCwds()
+	running := map[string]bool{}
 	for cwd := range procs {
 		running[cwd] = true
 	}
