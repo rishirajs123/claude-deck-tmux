@@ -240,6 +240,11 @@ input[type=search]:focus{border-color:var(--ice)}
 .nsfield input:focus,.nsarea:focus{border-color:var(--ice)}
 .nsfield input::placeholder,.nsarea::placeholder{color:var(--faint)}
 .nshelp{color:var(--faint);font-size:11px;font-family:var(--mono);margin-top:1px}
+.permseg{display:inline-flex;width:fit-content;border:1px solid var(--hull);border-radius:9px;overflow:hidden;background:rgba(11,14,19,.5)}
+.permseg button{background:none;border:none;color:var(--dim);padding:8px 15px;font-size:12.5px;font-family:var(--sans);cursor:pointer}
+.permseg button:first-child{border-right:1px solid var(--hull)}
+.permseg button.on{background:rgba(95,224,240,.12);color:var(--ice)}
+.permseg button:nth-child(2).on{background:rgba(255,184,77,.14);color:var(--amber)}
 .newbtn{background:rgba(95,224,240,.1);border:1px solid rgba(95,224,240,.45);color:var(--ice);border-radius:9px;padding:7px 13px;font-size:12.5px;font-family:var(--sans);cursor:pointer;white-space:nowrap}
 .newbtn:hover{background:rgba(95,224,240,.16);border-color:var(--ice)}
 .toast{position:fixed;bottom:22px;right:22px;background:var(--panel2);border:1px solid var(--hull);color:var(--txt);padding:11px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:440px;z-index:60}

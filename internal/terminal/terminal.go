@@ -59,18 +59,27 @@ end tell`, tty)
 }
 
 // Resume opens a new iTerm2 tab in cwd and resumes the given session id.
-func Resume(cwd, id string) error {
-	return openTab(shellCmd(cwd, "claude --resume "+shQuote(id)))
+// flags (e.g. --permission-mode default) are appended when non-empty.
+func Resume(cwd, id, flags string) error {
+	cmd := "claude --resume " + shQuote(id)
+	if flags != "" {
+		cmd += " " + flags
+	}
+	return openTab(shellCmd(cwd, cmd))
 }
 
 // NewSession opens a new iTerm2 tab in dir and starts a fresh claude session.
-// A non-empty prompt is passed as claude's initial prompt (submitted on start).
-func NewSession(dir, prompt string) error {
+// A non-empty prompt is passed as claude's initial prompt (submitted on start);
+// flags (e.g. --dangerously-skip-permissions) are appended when non-empty.
+func NewSession(dir, prompt, flags string) error {
 	d, err := ensureDir(dir)
 	if err != nil {
 		return err
 	}
 	cmd := "claude"
+	if flags != "" {
+		cmd += " " + flags
+	}
 	if strings.TrimSpace(prompt) != "" {
 		cmd += " " + shQuote(prompt)
 	}

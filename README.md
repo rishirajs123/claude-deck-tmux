@@ -20,7 +20,7 @@ Run Claude Code enough and the sessions pile up — dozens of them, scattered ac
 - **Working right now** — spot which running sessions are *actively processing* a prompt (a live pulse + equalizer) versus just sitting idle at the prompt.
 
 **🎮 Drive a session from your browser**
-- **Start a new session** — pick a directory (created for you if it doesn't exist) and optionally seed a first prompt; ClaudeDeck opens a new iTerm2 tab running `claude` right there.
+- **Start a new session** — pick a directory (created for you if it doesn't exist), optionally seed a first prompt, and choose whether it **asks for permissions or skips them**; ClaudeDeck opens a new iTerm2 tab running `claude` right there. (The permission choice is remembered and also applies when you resume.)
 - **Compose & send** — write or paste a long prompt (or a `/command`) in a proper editor and fire it straight into a running session. Multi-line arrives as *one* message — far nicer than wrestling with it in the terminal.
 - **Answer when a session needs you** — ClaudeDeck flags any session sitting on a yes/no permission prompt, shows you the exact question, and lets you pick the answer right from the dashboard.
 - **Act on a running session** — **switch its model**, **compact**, **clear**, toggle **skip-permissions** on or off (it detects the current mode and restarts in place), or **kill** it, right from its row.

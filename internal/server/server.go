@@ -329,7 +329,7 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "POST only", 405)
 		return
 	}
-	var req struct{ Action, ID, Cwd, Text string }
+	var req struct{ Action, ID, Cwd, Text, Perm string }
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), 400)
 		return
@@ -339,9 +339,9 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 	case "focus":
 		err = terminal.Focus(req.Cwd)
 	case "resume":
-		err = terminal.Resume(req.Cwd, req.ID)
+		err = terminal.Resume(req.Cwd, req.ID, permFlag(req.Perm))
 	case "new":
-		err = terminal.NewSession(req.Cwd, req.Text)
+		err = terminal.NewSession(req.Cwd, req.Text, permFlag(req.Perm))
 	case "kill":
 		err = terminal.Kill(req.Cwd)
 	case "reveal":
@@ -362,6 +362,18 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"ok": true})
+}
+
+// permFlag maps the UI's permission choice to a claude launch flag.
+func permFlag(perm string) string {
+	switch perm {
+	case "skip":
+		return "--dangerously-skip-permissions"
+	case "ask":
+		return "--permission-mode default"
+	default:
+		return ""
+	}
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

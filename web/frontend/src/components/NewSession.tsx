@@ -8,7 +8,9 @@ export default function NewSession({ sessions, onClose, onLaunch }: {
 }) {
   const [dir, setDir] = useState('')
   const [prompt, setPrompt] = useState('')
+  const [perm, setPerm] = useState(() => localStorage.getItem('cd_perm') || 'ask')
   const dirRef = useRef<HTMLInputElement>(null)
+  const choosePerm = (p: string) => { setPerm(p); localStorage.setItem('cd_perm', p) }
 
   const dirs = useMemo(
     () => Array.from(new Set(sessions.map(s => s.cwd).filter(Boolean))).sort(),
@@ -49,6 +51,16 @@ export default function NewSession({ sessions, onClose, onLaunch }: {
             <label>First prompt <span className="opt">optional</span></label>
             <textarea className="nsarea" value={prompt} onChange={e => setPrompt(e.target.value)}
               placeholder="Sent as the session's first message — e.g. “Review the auth module and list the top risks.” Leave blank to just open Claude." />
+          </div>
+          <div className="nsfield">
+            <label>Permissions</label>
+            <div className="permseg">
+              <button className={perm === 'ask' ? 'on' : ''} onClick={() => choosePerm('ask')}>Ask each time</button>
+              <button className={perm === 'skip' ? 'on' : ''} onClick={() => choosePerm('skip')}>Skip prompts</button>
+            </div>
+            <div className="nshelp">{perm === 'skip'
+              ? 'Runs with --dangerously-skip-permissions. Also used when you resume a session.'
+              : 'Normal permission prompts. Also used when you resume a session.'}</div>
           </div>
         </div>
         <div className="cmpfoot">
