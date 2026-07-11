@@ -6,12 +6,15 @@ const MODELS: [string, string][] = [['opus', 'Opus'], ['sonnet', 'Sonnet'], ['ha
 
 export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
   const [open, setOpen] = useState(false)
+  const [perm, setPerm] = useState(() => localStorage.getItem('cd_perm') || 'ask')
   const ref = useRef<HTMLDivElement>(null)
   const run = s.status === 'running'
   const stop = (e: React.MouseEvent) => e.stopPropagation()
+  const setPermPref = (p: string) => { setPerm(p); localStorage.setItem('cd_perm', p) }
 
   useEffect(() => {
     if (!open) return
+    setPerm(localStorage.getItem('cd_perm') || 'ask') // re-sync in case it changed elsewhere
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
     const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', onDoc)
@@ -24,7 +27,11 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
     if (confirmMsg && !confirm(confirmMsg)) return
     setOpen(false); h.runAction('send', s, text)
   }
-  const copyResume = () => { setOpen(false); navigator.clipboard.writeText(`cd '${s.cwd}' && claude --resume '${s.id}'`) }
+  const copyResume = () => {
+    setOpen(false)
+    const flag = perm === 'skip' ? ' --dangerously-skip-permissions' : perm === 'ask' ? ' --permission-mode default' : ''
+    navigator.clipboard.writeText(`cd '${s.cwd}' && claude --resume '${s.id}'${flag}`)
+  }
   const kill = () => { if (confirm('Kill this session? This terminates its claude process.')) { setOpen(false); h.runAction('kill', s) } }
   const bypass = () => {
     if (confirm('Enable skip-permissions for this session?\n\nIt exits and immediately resumes the same session with --dangerously-skip-permissions, which bypasses ALL permission prompts. Only do this for a session and directory you trust.')) {
@@ -51,6 +58,15 @@ export default function RowActions({ s, h }: { s: Session; h: Handlers }) {
           {run
             ? <button className="mi" onClick={() => act('focus')}>▶ Focus tab</button>
             : <button className="mi" onClick={() => act('resume')}>↻ Resume session</button>}
+          {!run && (
+            <>
+              <div className="midiv">Permissions on resume</div>
+              <div className="mimodels">
+                <button className={'permchip' + (perm === 'ask' ? ' on' : '')} onClick={() => setPermPref('ask')}>Ask</button>
+                <button className={'permchip skip' + (perm === 'skip' ? ' on' : '')} onClick={() => setPermPref('skip')}>Skip</button>
+              </div>
+            </>
+          )}
           <button className="mi" onClick={() => act('reveal')}>📁 Reveal in Finder</button>
           <button className="mi" onClick={copyResume}>⧉ Copy resume cmd</button>
           {run && (
