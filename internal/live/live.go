@@ -6,24 +6,27 @@ import (
 	"strings"
 )
 
-// ClaudeProcs maps each working directory to the pids of the live `claude`
-// processes running in it. Child processes inherit the session cwd. It ignores
-// stopped/suspended processes (a Ctrl-Z'd `claude` lingers for days but is not a
-// live session), the Claude desktop app, and the codebase-memory / claude-deck
-// binaries.
+// ClaudeProcs maps each working directory to the pids of the live interactive
+// `claude` sessions running in it. A real session has a controlling tty; this
+// ignores Claude's background daemon/spare/pty-host workers (tty "??"), stopped
+// (Ctrl-Z'd) processes, the Claude desktop app, and the codebase-memory /
+// claude-deck binaries.
 func ClaudeProcs() map[string][]string {
 	m := map[string][]string{}
 	// Enumerate every process — `pgrep -f claude` unreliably misses live sessions.
-	out, err := exec.Command("ps", "-Ao", "pid=,stat=,command=").Output()
+	out, err := exec.Command("ps", "-Ao", "pid=,tty=,stat=,command=").Output()
 	if err != nil {
 		return m
 	}
 	for _, line := range strings.Split(string(out), "\n") {
 		f := strings.Fields(line)
-		if len(f) < 3 || !strings.Contains(line, "claude") {
+		if len(f) < 4 || !strings.Contains(line, "claude") {
 			continue
 		}
-		if strings.HasPrefix(f[1], "T") { // stopped/suspended: a Ctrl-Z'd claude
+		if f[1] == "??" || f[1] == "?" { // no controlling tty: a daemon, not a session
+			continue
+		}
+		if strings.HasPrefix(f[2], "T") { // stopped/suspended: a Ctrl-Z'd claude
 			continue // lingers for days but is not a live session
 		}
 		if strings.Contains(line, "codebase-memory") || strings.Contains(line, "claude-deck") ||
