@@ -178,6 +178,30 @@ func probeLayer(chain []string, deck []DeckSession) *Topology {
 	return top
 }
 
+// tmuxBin resolves the local tmux binary once. Under launchd the PATH is
+// minimal (/usr/bin:...:/usr/local/bin) and misses Homebrew on Apple Silicon,
+// which would make the whole topology silently vanish.
+var tmuxBin = sync.OnceValue(func() string {
+	if p, err := exec.LookPath("tmux"); err == nil {
+		return p
+	}
+	for _, p := range []string{"/opt/homebrew/bin/tmux", "/usr/local/bin/tmux", "/usr/bin/tmux"} {
+		if _, err := exec.Command(p, "-V").Output(); err == nil {
+			return p
+		}
+	}
+	return "tmux"
+})
+
+// localOrRemoteTmux is the tmux command for a layer: resolved path locally,
+// plain "tmux" through ssh (the remote shell has its own PATH).
+func localOrRemoteTmux(chain []string) string {
+	if len(chain) == 0 {
+		return tmuxBin()
+	}
+	return "tmux"
+}
+
 // readLayer fetches one tmux server's tree + claude processes in a single
 // (possibly remote) shell invocation and assembles the topology.
 func readLayer(chain []string, deck []DeckSession) *Topology {
@@ -188,7 +212,7 @@ func readLayer(chain []string, deck []DeckSession) *Topology {
 	t := &Topology{Host: host, Chain: chain}
 
 	// One round-trip: panes, then a marker, then every claude-ish process.
-	script := fmt.Sprintf(`tmux list-panes -a -F '%s' 2>&1; echo '===PS==='; ps -Ao pid=,tty=,stat=,args= | grep -w claude | grep -v grep`, paneFormat)
+	script := fmt.Sprintf(`%s list-panes -a -F '%s' 2>&1; echo '===PS==='; ps -Ao pid=,tty=,stat=,args= | grep -w claude | grep -v grep`, localOrRemoteTmux(chain), paneFormat)
 	out, err := runShell(chain, script)
 	if err != nil && !strings.Contains(out, "===PS===") {
 		t.Err = strings.TrimSpace(firstLine(out) + " " + err.Error())
@@ -315,7 +339,7 @@ func Exec(chain []string, args ...string) (string, error) {
 	if len(args) == 0 {
 		return "", fmt.Errorf("no tmux arguments")
 	}
-	return runShell(chain, "tmux "+shellJoin(args))
+	return runShell(chain, localOrRemoteTmux(chain)+" "+shellJoin(args))
 }
 
 // runShell executes script locally or through the ssh chain.
