@@ -74,6 +74,9 @@ type Topology struct {
 	Chain    []string  `json:"chain"`
 	Sessions []Session `json:"sessions"`
 	Err      string    `json:"err,omitempty"` // probe failures, surfaced not hidden
+	// AsOf is when this layer was actually observed (epoch ms). A topology is
+	// a mirror of reality, not reality — readers should say "as of", not "is".
+	AsOf int64 `json:"as_of"`
 }
 
 // DeckSession is the slice of claude-deck's session record binding needs.
@@ -209,7 +212,7 @@ func readLayer(chain []string, deck []DeckSession) *Topology {
 	if len(chain) > 0 {
 		host = chain[len(chain)-1]
 	}
-	t := &Topology{Host: host, Chain: chain}
+	t := &Topology{Host: host, Chain: chain, AsOf: time.Now().UnixMilli()}
 
 	// One round-trip: panes, then a marker, then every claude-ish process.
 	script := fmt.Sprintf(`%s list-panes -a -F '%s' 2>&1; echo '===PS==='; ps -Ao pid=,tty=,stat=,args= | grep -w claude | grep -v grep`, localOrRemoteTmux(chain), paneFormat)

@@ -77,10 +77,44 @@ func tmuxBindings(top *tmuxview.Topology) map[string]paneBinding {
 
 // handleTmux serves the full topology. ?follow=1 descends into ssh panes to
 // show nested tmux servers on other machines (slower: it dials them).
+// Every explicit fetch is a deliberate look at reality, so it is recorded in
+// the temporal model — with follow, that includes the remote layers.
 func (s *Server) handleTmux(w http.ResponseWriter, r *http.Request) {
 	sessions, _ := s.st.All()
 	top := tmuxview.Snapshot(deckSessions(sessions), r.URL.Query().Get("follow") == "1")
+	_ = s.st.RecordTmuxObservation(top)
 	writeJSON(w, top)
+}
+
+// handleTmuxHistory answers temporal questions from the SCD2 model:
+//   ?pane=%7                 → that pane's version history (the pane is the
+//                              durable face; these rows are what it showed)
+//   ?at=2026-07-22T20:00:00Z → the whole world as it was at that instant
+//   ?pane=%7&at=…            → what that pane showed at that instant
+// at accepts RFC3339 or epoch milliseconds. Optional &host= (default all).
+func (s *Server) handleTmuxHistory(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	var at int64
+	if v := q.Get("at"); v != "" {
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			at = t.UnixMilli()
+		} else if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			at = n
+		} else {
+			http.Error(w, "at must be RFC3339 or epoch ms", 400)
+			return
+		}
+	}
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	rows, err := s.st.TmuxHistory(q.Get("host"), q.Get("pane"), at, limit)
+	if err != nil {
+		writeJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	writeJSON(w, map[string]any{
+		"as_of_last_observation": s.st.LastTmuxObservation(),
+		"states":                 rows,
+	})
 }
 
 // handleTmuxExec runs one tmux command against any layer. chain [] is the

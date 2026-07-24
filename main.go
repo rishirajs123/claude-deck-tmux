@@ -74,7 +74,11 @@ func main() {
 	// only when something actually changed.
 	go func() {
 		for {
-			_, _, _ = tmuxview.WriteSnapshot(claudeDir, deckFromStore(st)) // quiet: "no tmux server" is normal
+			// One observation of reality per tick, used twice: the restore
+			// snapshot on disk and the temporal (SCD2) record in the store.
+			top := tmuxview.Snapshot(deckFromStore(st), false)
+			_, _, _ = tmuxview.WriteSnapshotFrom(claudeDir, top) // quiet: "no tmux server" is normal
+			_ = st.RecordTmuxObservation(top)
 			time.Sleep(time.Minute)
 		}
 	}()

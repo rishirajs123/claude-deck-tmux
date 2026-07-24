@@ -53,7 +53,13 @@ func SnapshotDir(claudeDir string) string { return filepath.Join(claudeDir, "tmu
 // timestamped copy when the topology actually changed since the last write.
 // Returns the path written and whether it was a change.
 func WriteSnapshot(claudeDir string, deck []DeckSession) (string, bool, error) {
-	top := Snapshot(deck, false) // local layer only; no ssh dialing from the background loop
+	// local layer only; no ssh dialing from the background loop
+	return WriteSnapshotFrom(claudeDir, Snapshot(deck, false))
+}
+
+// WriteSnapshotFrom persists an already-taken topology, so callers that need
+// the topology for other purposes (temporal recording) observe reality once.
+func WriteSnapshotFrom(claudeDir string, top *Topology) (string, bool, error) {
 	if top.Err != "" {
 		return "", false, fmt.Errorf("tmux: %s", top.Err)
 	}

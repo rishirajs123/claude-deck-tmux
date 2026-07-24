@@ -53,7 +53,11 @@ export default function Tmux({ sessions, toast }: { sessions: Session[]; toast: 
 function Layer({ top, byId, toast, depth }: { top: TmuxTopology; byId: Map<string, Session>; toast: (m: string, k?: string) => void; depth: number }) {
   return (
     <div className={'tmuxlayer' + (depth ? ' nested' : '')}>
-      <div className="tmuxhost">{depth > 0 && '⇄ '}{top.host}{top.err && <span className="err"> — {top.err}</span>}</div>
+      <div className="tmuxhost">
+        {depth > 0 && '⇄ '}{top.host}
+        {top.as_of ? <span className="dim asof"> · as of {ago(top.as_of)}</span> : null}
+        {top.err && <span className="err"> — {top.err}</span>}
+      </div>
       {(top.sessions || []).map(s => <SessionTree key={s.id} s={s} top={top} byId={byId} toast={toast} depth={depth} />)}
     </div>
   )

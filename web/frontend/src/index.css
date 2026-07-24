@@ -283,3 +283,4 @@ input[type=search]:focus{border-color:var(--ice)}
 .snippet { font-size: 13px; line-height: 1.5; opacity: .9; word-break: break-word; }
 .snippet mark { background: rgba(255,210,80,.28); color: inherit; border-radius: 3px; padding: 0 2px; }
 .tmuxsessname .gcount { margin-left: 8px; font-weight: 400; opacity: .6; font-size: 11px; }
+.tmuxhost .asof { text-transform: none; letter-spacing: normal; }

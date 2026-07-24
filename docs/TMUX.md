@@ -102,6 +102,44 @@ Built for the many-sessions-one-directory workflow: when everything lives in
 `~/repos`, project names tell you nothing — titles, branches, pane locations
 and prompt content are how you actually find things.
 
+## Temporal model: panes as slowly-changing dimensions
+
+A topology response is a *mirror* of tmux, not tmux — so ClaudeDeck never
+pretends a mirror is live. Two mechanisms:
+
+**Every response says when it looked.** Each layer carries `as_of` (epoch ms).
+The right reading of any answer is "`%7` runs zsh *as of 17:01:29*", never
+"`%7` runs zsh". Consistency is split deliberately: writes to the store are
+ACID (each observation is one SQLite transaction, WAL journal), while the
+store's relationship to reality is BASE — eventually consistent, staleness
+bounded by the observation interval and always explicit.
+
+**History is versioned, not overwritten.** The pane is the durable entity
+(dimension) — its stable tmux ID is the face that persists. What it *shows* —
+command, cwd, window, bound Claude session — are SCD Type 2 attributes:
+on change, the old row is closed (`valid_to`) and a new one opened, atomically.
+The pane title is the one Type 1 exception (Claude's spinner lives in it;
+versioning it would explode). `tmux_observations` records every look, so
+"unchanged since T" and "unobserved since T" are distinguishable — absence of
+observation is never treated as absence.
+
+Observations happen on the service's once-a-minute tick and on every explicit
+`/api/tmux` fetch (with `follow=1`, remote layers are recorded too; unfollowed
+layers are left untouched, not closed).
+
+```bash
+# what did pane %7 show, over time?
+curl 'localhost:7420/api/tmux/history?pane=%257'
+#   version: cmd=nvim  valid_from=… valid_to=…      ← closed when nvim quit
+#   version: cmd=zsh   valid_from=… valid_to=null   ← current
+
+# the whole world as it was yesterday evening
+curl 'localhost:7420/api/tmux/history?at=2026-07-23T20:00:00%2B05:30'
+```
+
+"What was running when the machine died" — the question that motivates all of
+this — becomes one query at the last `valid_to`-free rows before the crash.
+
 ## API
 
 Everything the UI does is plain HTTP on localhost:

@@ -115,6 +115,7 @@ func (s *Server) Listen(addr string) error {
 	mux.HandleFunc("/api/tmux", s.handleTmux)
 	mux.HandleFunc("/api/tmux/exec", s.handleTmuxExec)
 	mux.HandleFunc("/api/tmux/restore", s.handleTmuxRestore)
+	mux.HandleFunc("/api/tmux/history", s.handleTmuxHistory)
 	mux.HandleFunc("/api/search", s.handleSearch)
 	sub, _ := fs.Sub(web.FS, "static")
 	fileServer := http.FileServer(http.FS(sub))
