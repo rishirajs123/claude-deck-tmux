@@ -38,10 +38,12 @@ type Server struct {
 	tmuxMu     sync.Mutex
 	tmuxTop    *tmuxview.Topology // short-lived cache, see topology()
 	tmuxAt     time.Time
+	feedMu     sync.Mutex
+	feedSubs   map[chan []byte]bool // SSE subscribers of the witness feed
 }
 
 func New(st *store.Store, claudeDir string) *Server {
-	return &Server{st: st, claudeDir: claudeDir, lastIngest: time.Now()}
+	return &Server{st: st, claudeDir: claudeDir, lastIngest: time.Now(), feedSubs: map[chan []byte]bool{}}
 }
 
 // maybeReingest refreshes the DB from ~/.claude at most every 15s, in the
@@ -105,6 +107,7 @@ func (s *Server) scanPrompts() {
 
 func (s *Server) Listen(addr string) error {
 	go s.watchPrompts()
+	s.startWitness()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/sessions", s.handleSessions)
 	mux.HandleFunc("/api/stats", s.handleStats)
@@ -116,6 +119,7 @@ func (s *Server) Listen(addr string) error {
 	mux.HandleFunc("/api/tmux/exec", s.handleTmuxExec)
 	mux.HandleFunc("/api/tmux/restore", s.handleTmuxRestore)
 	mux.HandleFunc("/api/tmux/history", s.handleTmuxHistory)
+	mux.HandleFunc("/api/tmux/feed", s.handleTmuxFeed)
 	mux.HandleFunc("/api/search", s.handleSearch)
 	sub, _ := fs.Sub(web.FS, "static")
 	fileServer := http.FileServer(http.FS(sub))

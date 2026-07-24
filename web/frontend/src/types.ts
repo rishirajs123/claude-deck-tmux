@@ -65,7 +65,7 @@ export interface TmuxPane {
 }
 export interface TmuxWindow { id: string; index: number; name: string; layout: string; active: boolean; panes: TmuxPane[] }
 export interface TmuxSession { id: string; name: string; attached: boolean; windows: TmuxWindow[] }
-export interface TmuxTopology { host: string; chain: string[] | null; sessions: TmuxSession[] | null; err?: string; as_of?: number }
+export interface TmuxTopology { host: string; chain: string[] | null; sessions: TmuxSession[] | null; err?: string; as_of?: number; edge?: 'attached' | 'reachable' }
 
 // --- full-text search ---
 export interface SearchHit {

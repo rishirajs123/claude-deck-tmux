@@ -80,6 +80,9 @@ rebuilds every session: windows recreated with their names at their indexes,
 panes split to the saved geometry, cwds restored, and each Claude pane gets
 `claude --resume <uuid>` (with the bypass flag if it had one) typed into it.
 
+- **User dimensions travel with the pane**: every `@`-prefixed pane option
+  (`@pane_label`, `@agent`, …) is captured in each snapshot and re-applied on
+  restore — labels agents set on panes survive the rebuild.
 - **Additive, never destructive**: a tmux session whose name already exists is
   skipped and reported, never clobbered.
 - **Remote layers are deliberately not restored**: tmux on another machine
@@ -101,6 +104,41 @@ and a **focus** (running) or **resume** (ended) button.
 Built for the many-sessions-one-directory workflow: when everything lives in
 `~/repos`, project names tell you nothing — titles, branches, pane locations
 and prompt content are how you actually find things.
+
+## The witness: push, not just pull
+
+The deck holds a long-lived `tmux -C` control-mode client, so tmux *pushes*
+notifications the moment anything happens — no waiting for the next poll.
+
+- **Structural events** (`window-add`, `layout-change`, `window-renamed`, …)
+  trigger a debounced observation: the temporal model converges within about
+  a second of reality; the minute tick remains as reconciliation.
+- **Activity events** (`%output`) are forwarded as metadata — pane id and byte
+  count, never content. An agent that sees activity on a pane it cares about
+  runs `capture-pane` itself.
+- **Agents subscribe instead of polling**: `GET /api/tmux/feed` is an SSE
+  stream, one JSON event per line:
+
+```bash
+curl -N localhost:7420/api/tmux/feed
+# data: {"at":1784903442501,"kind":"output","arg":"%3","bytes":104}
+# data: {"at":1784903443502,"kind":"window-renamed","arg":"@3"}
+```
+
+Honest scope: `%output` covers panes of the session the witness is attached
+to (structural events are server-wide); remote layers are not witnessed —
+they stay polled.
+
+## Edge types: attached vs merely reachable
+
+A nested layer carries `edge` describing how the ssh pane above it relates to
+that remote tmux: **`attached`** — this pane's ssh session is *provably* a
+client of that server (traced connection-by-connection: the local ssh's
+source port → the remote login's `SSH_CONNECTION` → its tty → `list-clients`);
+**`reachable`** — the host runs tmux but this pane merely leads there. The
+same remote server nested under two ssh panes is now distinguishable. Any gap
+in the trace (non-Linux remote, multi-hop chain) degrades honestly to
+`reachable`, never to a guess.
 
 ## Temporal model: panes as slowly-changing dimensions
 

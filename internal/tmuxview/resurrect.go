@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -44,6 +45,10 @@ type PaneSnap struct {
 	Claude  string `json:"claude,omitempty"` // session uuid to --resume
 	Bypass  bool   `json:"bypass,omitempty"`
 	SSHDest string `json:"ssh_dest,omitempty"`
+	// Options are the pane's @-prefixed user options (@pane_label, @agent, …).
+	// They are pane-dimension attributes like any other: captured in every
+	// snapshot and re-applied on restore.
+	Options map[string]string `json:"options,omitempty"`
 }
 
 // SnapshotDir is where snapshots live, under ~/.claude.
@@ -57,13 +62,39 @@ func WriteSnapshot(claudeDir string, deck []DeckSession) (string, bool, error) {
 	return WriteSnapshotFrom(claudeDir, Snapshot(deck, false))
 }
 
+// paneOptions reads every pane's @-prefixed user options in one shell pass.
+func paneOptions() map[string]map[string]string {
+	out, err := runShell(nil, localOrRemoteTmux(nil)+` list-panes -a -F '#{pane_id}' | while read p; do `+
+		localOrRemoteTmux(nil)+` show-options -p -t "$p" | sed "s|^|$p |"; done`)
+	if err != nil {
+		return nil
+	}
+	m := map[string]map[string]string{}
+	for _, line := range strings.Split(out, "\n") {
+		f := strings.SplitN(line, " ", 3)
+		if len(f) < 3 || !strings.HasPrefix(f[1], "@") {
+			continue
+		}
+		val := f[2]
+		// show-options quotes values containing spaces; strip one quote layer
+		if len(val) >= 2 && val[0] == '"' && val[len(val)-1] == '"' {
+			val = strings.ReplaceAll(val[1:len(val)-1], `\"`, `"`)
+		}
+		if m[f[0]] == nil {
+			m[f[0]] = map[string]string{}
+		}
+		m[f[0]][f[1]] = val
+	}
+	return m
+}
+
 // WriteSnapshotFrom persists an already-taken topology, so callers that need
 // the topology for other purposes (temporal recording) observe reality once.
 func WriteSnapshotFrom(claudeDir string, top *Topology) (string, bool, error) {
 	if top.Err != "" {
 		return "", false, fmt.Errorf("tmux: %s", top.Err)
 	}
-	snap := fromTopology(top)
+	snap := fromTopology(top, paneOptions())
 	dir := SnapshotDir(claudeDir)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", false, err
@@ -90,7 +121,7 @@ func WriteSnapshotFrom(claudeDir string, top *Topology) (string, bool, error) {
 	return latest, changed, nil
 }
 
-func fromTopology(top *Topology) SnapshotFile {
+func fromTopology(top *Topology, opts map[string]map[string]string) SnapshotFile {
 	var sf SnapshotFile
 	h := sha256.New()
 	for _, s := range top.Sessions {
@@ -98,13 +129,13 @@ func fromTopology(top *Topology) SnapshotFile {
 		for _, w := range s.Windows {
 			ws := WinSnap{Index: w.Index, Name: w.Name, Layout: w.Layout}
 			for _, p := range w.Panes {
-				ps := PaneSnap{Index: p.Index, Cwd: p.Cwd, Cmd: p.Cmd, SSHDest: p.SSHDest}
+				ps := PaneSnap{Index: p.Index, Cwd: p.Cwd, Cmd: p.Cmd, SSHDest: p.SSHDest, Options: opts[p.ID]}
 				if p.Claude != nil && p.Claude.SessionID != "" {
 					ps.Claude = p.Claude.SessionID
 					ps.Bypass = p.Claude.Bypass
 				}
 				ws.Panes = append(ws.Panes, ps)
-				fmt.Fprintf(h, "%s|%d|%s|%s|%s\n", s.Name, w.Index, w.Name, p.Cwd, ps.Claude)
+				fmt.Fprintf(h, "%s|%d|%s|%s|%s|%v\n", s.Name, w.Index, w.Name, p.Cwd, ps.Claude, ps.Options)
 			}
 			ss.Windows = append(ss.Windows, ws)
 		}
@@ -183,6 +214,11 @@ func restoreSession(s SessSnap) error {
 			Exec(nil, "select-layout", "-t", target, w.Layout)
 		}
 		for pi, p := range w.Panes {
+			pt := target + "." + strconv.Itoa(paneIndexAt(w, pi))
+			// user dimensions travel with the pane: re-apply @-options first
+			for name, val := range p.Options {
+				Exec(nil, "set-option", "-p", "-t", pt, name, val)
+			}
 			if p.Claude == "" {
 				continue
 			}
@@ -190,7 +226,6 @@ func restoreSession(s SessSnap) error {
 			if p.Bypass {
 				cmd += " --dangerously-skip-permissions"
 			}
-			pt := target + "." + strconv.Itoa(paneIndexAt(w, pi))
 			Exec(nil, "send-keys", "-t", pt, cmd, "Enter")
 		}
 	}

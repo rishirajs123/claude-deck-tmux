@@ -77,6 +77,12 @@ type Topology struct {
 	// AsOf is when this layer was actually observed (epoch ms). A topology is
 	// a mirror of reality, not reality — readers should say "as of", not "is".
 	AsOf int64 `json:"as_of"`
+	// Edge qualifies how a nested layer relates to the pane it hangs under:
+	// "attached" — this pane's ssh session is provably a client of that tmux
+	// (correlated through the TCP connection to the remote client tty);
+	// "reachable" — the host runs tmux, but this pane merely leads there.
+	// The same remote server under two ssh panes is distinguishable by this.
+	Edge string `json:"edge,omitempty"`
 }
 
 // DeckSession is the slice of claude-deck's session record binding needs.
@@ -139,15 +145,17 @@ func descend(t *Topology, deck []DeckSession, depth int) {
 				if p.Cmd != "ssh" {
 					continue
 				}
-				dest := sshDest(p.PID)
+				dest, sshPID := sshInfo(p.PID)
 				if dest == "" {
 					continue
 				}
 				p.SSHDest = dest
 				chain := append(append([]string{}, t.Chain...), dest)
 				if nested := probeLayer(chain, deck); nested != nil {
-					p.Nested = nested
-					descend(nested, deck, depth-1)
+					n := *nested // copy: edge is per-pane, the cache is per-host
+					n.Edge = layerEdge(sshPID, chain)
+					p.Nested = &n
+					descend(p.Nested, deck, depth-1)
 				}
 			}
 		}
@@ -355,20 +363,22 @@ func runShell(chain []string, script string) (string, error) {
 	return string(out), err
 }
 
-// sshDest extracts the destination of the ssh process running under pane pid.
-func sshDest(panePID string) string {
+// sshInfo extracts the destination and pid of the ssh process under pane pid.
+// The pane's own process is considered too: respawn-pane runs the command
+// directly, so ssh can BE the pane process rather than a shell's child.
+func sshInfo(panePID string) (dest, pid string) {
 	out, err := exec.Command("/bin/sh", "-c",
-		"ps -o args= -p $(pgrep -P "+panePID+" | tr '\\n' ',' | sed 's/,$//') 2>/dev/null").Output()
+		"ps -o pid=,args= -p "+panePID+",$(pgrep -P "+panePID+" | tr '\\n' ',' | sed 's/,$//') 2>/dev/null").Output()
 	if err != nil {
-		return ""
+		return "", ""
 	}
 	for _, line := range strings.Split(string(out), "\n") {
 		f := strings.Fields(line)
-		if len(f) == 0 || f[0] != "ssh" {
+		if len(f) < 2 || f[1] != "ssh" {
 			continue
 		}
-		// last argument that isn't a flag or a flag's value: the destination
-		dest := ""
+		pid = f[0]
+		f = f[1:]
 		skip := false
 		for _, a := range f[1:] {
 			if skip {
@@ -385,9 +395,51 @@ func sshDest(panePID string) string {
 			dest = a
 			break // first non-flag arg is the destination; rest is remote cmd
 		}
-		return dest
+		return dest, pid
 	}
-	return ""
+	return "", ""
+}
+
+// layerEdge decides "attached" vs "reachable" for a nested layer by tracing
+// the actual TCP connection: the local ssh's source port identifies, on the
+// remote side, which sshd serves this pane; that sshd's descendant tty is
+// then compared against the remote tmux's client ttys. Every step is
+// best-effort — any gap degrades honestly to "reachable", never to a guess.
+// Only direct (one-hop) layers are traced; deeper chains stay "reachable".
+func layerEdge(sshPID string, chain []string) string {
+	if sshPID == "" || len(chain) != 1 {
+		return "reachable"
+	}
+	// local side: the ssh process's source port
+	out, err := exec.Command("/bin/sh", "-c",
+		"lsof -nP -a -iTCP -p "+sshPID+" -Fn 2>/dev/null | grep -m1 '^n.*->'").Output()
+	if err != nil {
+		return "reachable"
+	}
+	// n192.168.1.5:54321->10.0.0.2:22
+	local, _, ok := strings.Cut(strings.TrimPrefix(firstLine(string(out)), "n"), "->")
+	if !ok {
+		return "reachable"
+	}
+	port := local[strings.LastIndexByte(local, ':')+1:]
+	if port == "" {
+		return "reachable"
+	}
+	// Remote side: every login process carries SSH_CONNECTION with the
+	// client's source port — match it under the user's sshd(-session)
+	// processes, take that login's tty, and ask tmux if it is a client tty.
+	// Linux-only (/proc environ); anything missing degrades to "reachable".
+	script := `for sp in $(pgrep -u $(id -u) -x sshd-session 2>/dev/null; pgrep -u $(id -u) -x sshd 2>/dev/null); do ` +
+		`for k in $(pgrep -P $sp); do ` +
+		`tr '\0' '\n' < /proc/$k/environ 2>/dev/null | grep -q "^SSH_CONNECTION=[^ ]* ` + port + ` " || continue; ` +
+		`t=$(ps -o tty= -p $k | tr -d ' '); [ "$t" = "?" ] && continue; ` +
+		`tmux list-clients -F '#{client_tty}' 2>/dev/null | grep -q "/dev/$t" && { echo attached; exit 0; }; ` +
+		`done; done; echo reachable`
+	res, err := runShell(chain, script)
+	if err == nil && strings.Contains(res, "attached") {
+		return "attached"
+	}
+	return "reachable"
 }
 
 func firstLine(s string) string {

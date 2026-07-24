@@ -55,6 +55,7 @@ function Layer({ top, byId, toast, depth }: { top: TmuxTopology; byId: Map<strin
     <div className={'tmuxlayer' + (depth ? ' nested' : '')}>
       <div className="tmuxhost">
         {depth > 0 && '⇄ '}{top.host}
+        {top.edge && <span className="tagchip" title="attached: this ssh pane is a live client of that tmux; reachable: it merely leads to that host">{top.edge}</span>}
         {top.as_of ? <span className="dim asof"> · as of {ago(top.as_of)}</span> : null}
         {top.err && <span className="err"> — {top.err}</span>}
       </div>
